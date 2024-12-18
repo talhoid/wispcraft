@@ -1,0 +1,17 @@
+{
+  "name": "eagler-wisp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -cw"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@rollup/plugin-replace": "^6.0.2",
+    "rollup": "^4.28.1"
+  }
+}
