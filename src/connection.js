@@ -8,7 +8,7 @@ import {
 	makeCompressedPacket,
 } from "./packet/util";
 import * as packets from "./packet/types";
-import handleSkinCape from "./skins";
+import { handleSkinCape } from "./skins";
 
 export class wispWS {
 	constructor(uri) {
