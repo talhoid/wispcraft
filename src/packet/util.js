@@ -1,11 +1,3 @@
-export const PROTOCOL_CLIENT_VERSION = 0x01;
-export const PROTOCOL_SERVER_VERSION = 0x02;
-export const PROTOCOL_CLIENT_REQUEST_LOGIN = 0x04;
-export const PROTOCOL_SERVER_ALLOW_LOGIN = 0x05;
-export const PROTOCOL_CLIENT_PROFILE_DATA = 0x07;
-export const PROTOCOL_CLIENT_FINISH_LOGIN = 0x08;
-export const PROTOCOL_SERVER_FINISH_LOGIN = 0x09;
-
 function ba2ab(byteArray) {
 	const arrayBuffer = new ArrayBuffer(byteArray.length);
 	const uint8Array = new Uint8Array(arrayBuffer);
