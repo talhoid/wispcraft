@@ -1,6 +1,5 @@
 import { client as wisp } from "@mercuryworkshop/wisp-js/client";
 import * as packets from "./packet/types";
-import { nativeWebSocket } from "./snapshot";
 
 export class wispWS {
 	constructor(uri) {
@@ -22,13 +21,13 @@ export class wispWS {
 			this.ipPort[1] = 25565;
 		}
 		this.ipPort[1] = +this.ipPort[1];
-		const conn = new wisp.ClientConnection("wss://anura.pro/");
-		conn.addEventListener("open", () => {
-			let partialPacket = [];
-			this.wispStream = conn.create_stream(this.ipPort[0], this.ipPort[1]);
-			this.wispStream.addEventListener("message", async (event) => {
+        const conn = new wisp.ClientConnection("wss://anura.pro/");
+        conn.onopen = () => {
+            let partialPacket = [];
+            this.wispStream = conn.create_stream(this.ipPort[0], this.ipPort[1]);
+            this.wispStream.onmessage = async (event) => {
 				await navigator.locks.request("fart", async () => {
-					const selfPacket = [...partialPacket, ...new Uint8Array(event.data)];
+					const selfPacket = [...partialPacket, ...event.data];
 					partialPacket = [];
 					const res = readVarInt(selfPacket);
 					if (res.length < 2) {
@@ -43,19 +42,14 @@ export class wispWS {
 					}
 					let packetIdVI, packetId, packetIdOff, packet;
 					if (this.compression >= 0) {
-						const dataLenVI = readVarInt(
-							selfPacket.slice(packetOff, packetOff + packetLen)
-						);
+						const dataLenVI = readVarInt(selfPacket.slice(packetOff, packetOff + packetLen));
 						if (dataLenVI.length < 2) {
 							partialPacket = selfPacket;
 							return;
 						}
 						let dataLen = dataLenVI[0];
 						const dataLenOff = dataLenVI[1];
-						const compressedPacket = selfPacket.slice(
-							packetOff + dataLenOff,
-							packetOff + packetLen
-						);
+						const compressedPacket = selfPacket.slice(packetOff + dataLenOff, packetOff + packetLen);
 						if (compressedPacket.length != packetLen - dataLenOff) {
 							partialPacket = selfPacket;
 							return;
@@ -65,9 +59,7 @@ export class wispWS {
 							dataLen = packetLen - dataLenOff;
 							chunks.push(...compressedPacket);
 						} else {
-							const stream = new Blob([
-								new Uint8Array(compressedPacket),
-							]).stream();
+							const stream = new Blob([new Uint8Array(compressedPacket)]).stream();
 							try {
 								const decompressedStream = stream.pipeThrough(
 									new DecompressionStream("deflate")
@@ -92,52 +84,33 @@ export class wispWS {
 						packetId = packetIdVI[0];
 						packetIdOff = packetIdVI[1];
 						packet = chunks.slice(packetIdOff, dataLen);
-						partialPacket = selfPacket.slice(
-							packetOff + dataLenOff + compressedPacket.length
-						);
+						partialPacket = selfPacket.slice(packetOff + dataLenOff + compressedPacket.length);
 					} else {
-						packetIdVI = readVarInt(
-							selfPacket.slice(packetOff, packetOff + packetLen)
-						);
+						packetIdVI = readVarInt(selfPacket.slice(packetOff, packetOff + packetLen));
 						if (packetIdVI.length < 2) {
 							partialPacket = selfPacket;
 							return;
 						}
 						packetId = packetIdVI[0];
 						packetIdOff = packetIdVI[1];
-						packet = selfPacket.slice(
-							packetOff + packetIdOff,
-							packetOff + packetLen
-						);
+						packet = selfPacket.slice(packetOff + packetIdOff, packetOff + packetLen);
 						partialPacket = selfPacket.slice(packetOff + packetLen);
 					}
 					if (this.loggedIn) {
 						if (packetId == 0x46) {
 							this.compression = readVarInt(packet)[0];
 						} else {
-							this.emit("message", {
-								data: ba2ab([...makeVarInt(packetId), ...packet]),
-							});
+							this.emit("message", {data: ba2ab([...makeVarInt(packetId), ...packet])});
 						}
 					} else if (packetId == 0x03) {
 						this.compression = readVarInt(packet)[0];
 					} else if (packetId == 0x02) {
-						this.emit("message", {
-							data: ba2ab([packets.PROTOCOL_SERVER_FINISH_LOGIN]),
-						});
+						this.emit("message", {data: ba2ab([packets.PROTOCOL_SERVER_FINISH_LOGIN])});
 						this.loggedIn = true;
 						for (let p of this.eag2wispQueue) {
 							const vi = readVarInt(p);
 							if (this.compression >= 0) {
-								p = new Uint8Array(
-									ba2ab(
-										await makeCompressedPacket(
-											vi[0],
-											p.slice(vi[1]),
-											this.compression
-										)
-									)
-								);
+								p = new Uint8Array(ba2ab(await makeCompressedPacket(vi[0], p.slice(vi[1]), this.compression)));
 							} else {
 								p = new Uint8Array(ba2ab(makePacket(vi[0], p.slice(vi[1]))));
 							}
@@ -148,8 +121,13 @@ export class wispWS {
 						this.wispStream.close();
 					}
 				});
-			});
-		});
+			};
+			this.wispStream.onclose = (event) => {
+				this.emit("close", event.code);
+				conn.close();
+			};
+			this.emit("open", {});
+		};
 	}
 	emit(ev, data) {
 		ev = ev.toLowerCase();
@@ -169,7 +147,7 @@ export class wispWS {
 		if (this.wispStream) {
 			if (!this.handshook) {
 				switch (p[0]) {
-					case packet.PROTOCOL_CLIENT_VERSION:
+					case packets.PROTOCOL_CLIENT_VERSION:
 						this.emit("message", {
 							data: ba2ab([
 								packets.PROTOCOL_SERVER_VERSION,

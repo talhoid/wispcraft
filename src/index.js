@@ -1,5 +1,6 @@
 import { nativeWebSocket } from "./snapshot";
 import { wispWS } from "./connection";
+
 window.WebSocket = class {
 	constructor(uri, protos) {
 		if (("" + uri).toLowerCase().includes("://java://")) {
