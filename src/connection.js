@@ -8,6 +8,7 @@ import {
 	makeCompressedPacket,
 } from "./packet/util";
 import * as packets from "./packet/types";
+import handleSkinCape from "./skins";
 
 export class wispWS {
 	constructor(uri) {
@@ -113,6 +114,13 @@ export class wispWS {
 							packetOff + packetLen
 						);
 						partialPacket = selfPacket.slice(packetOff + packetLen);
+					}
+					if (vi[0] == 0x3F) {
+						const vivi = readVarInt(packet);
+						const tag = new TextDecoder().decode(packet.slice(vivi[1], vivi[1] + vivi[0]));
+						if (tag.startsWith("EAG|")) {
+							return;
+						}
 					}
 					if (this.loggedIn) {
 						if (packetId == 0x46) {
@@ -242,8 +250,23 @@ export class wispWS {
 				}
 				return;
 			}
+			const vi = readVarInt(p);
+			if (vi[0] == 0x17) {
+				const vivi = readVarInt(p);
+				const tag = new TextDecoder().decode(p.slice(vivi[1], vivi[1] + vivi[0]));
+				if (tag.startsWith("EAG|")) {
+					if (tag == "EAG|Skins-1.8" || tag == "EAG|Capes-1.8") {
+						const vivivi = readVarInt(p.slice(vivi[1] + vivi[0]));
+						handleSkinCape(tag[4] == "C", conn, p.slice(vivi[1] + vivi[0] + vivivi[1], vivi[1] + vivi[0] + vivivi[1] + vivivi[0]), (resp) => {
+							this.emit("message", {
+								data: Uint8Array.from([...makeVarInt(0x3F), ...makeVarInt(tag.length), ...(new TextEncoder().encode(tag)), ...makeVarInt(resp.length), ...resp]),
+							});
+						});
+					}
+					return;
+				}
+			}
 			if (this.loggedIn) {
-				const vi = readVarInt(p);
 				if (this.compression >= 0) {
 					p = Uint8Array.from(
 						await makeCompressedPacket(
