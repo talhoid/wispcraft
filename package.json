@@ -1,10 +1,11 @@
 {
-  "name": "eagler-wisp",
+  "name": "wispcraft",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "build": "rollup -c",
+    "build:release": "RELEASE=1 rollup -c",
     "watch": "rollup -cw"
   },
   "keywords": [],
@@ -12,6 +13,11 @@
   "license": "ISC",
   "devDependencies": {
     "@rollup/plugin-replace": "^6.0.2",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-node-resolve": "^16.0.0",
     "rollup": "^4.28.1"
+  },
+  "dependencies": {
+    "@mercuryworkshop/wisp-client-js": "^1.2.4"
   }
 }
