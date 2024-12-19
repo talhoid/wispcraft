@@ -1,23 +1,25 @@
 {
-  "name": "wispcraft",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "build": "rollup -c",
-    "build:release": "RELEASE=1 rollup -c",
-    "watch": "rollup -cw"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@rollup/plugin-replace": "^6.0.2",
-    "@rollup/plugin-terser": "^0.4.4",
-    "@rollup/plugin-node-resolve": "^16.0.0",
-    "rollup": "^4.28.1"
-  },
-  "dependencies": {
-    "@mercuryworkshop/wisp-client-js": "^1.2.4"
-  }
+	"name": "wispcraft",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"build": "rollup -c",
+		"build:release": "RELEASE=1 rollup -c",
+		"format": "prettier --config .prettierrc.js --write .",
+		"watch": "rollup -cw"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"devDependencies": {
+		"@rollup/plugin-node-resolve": "^16.0.0",
+		"@rollup/plugin-replace": "^6.0.2",
+		"@rollup/plugin-terser": "^0.4.4",
+		"rollup": "^4.28.1",
+		"prettier": "^3.4.2"
+	},
+	"dependencies": {
+		"@mercuryworkshop/wisp-js": "^0.3.3"
+	}
 }

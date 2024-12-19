@@ -1,20 +1,20 @@
-import nodeResolve from '@rollup/plugin-node-resolve';
-import replace from '@rollup/plugin-replace';
-import terser from '@rollup/plugin-terser';
+import nodeResolve from "@rollup/plugin-node-resolve";
+import replace from "@rollup/plugin-replace";
+import terser from "@rollup/plugin-terser";
 
 import { execSync } from "node:child_process";
-import { readFile } from 'node:fs/promises';
+import { readFile } from "node:fs/promises";
 
-const pkg = JSON.parse(await readFile('package.json'));
+const pkg = JSON.parse(await readFile("package.json"));
 
 const commonPlugins = () => [
-    terser(),
-    nodeResolve(),
+	terser(),
+	nodeResolve({
+		browser: true,
+	}),
 	replace({
-		'self.VERSION': JSON.stringify(
-		  pkg.version
-		),
-		'self.COMMITHASH': (() => {
+		"self.VERSION": JSON.stringify(pkg.version),
+		"self.COMMITHASH": (() => {
 			try {
 				let hash = JSON.stringify(
 					execSync("git rev-parse --short HEAD", {
@@ -32,13 +32,13 @@ const commonPlugins = () => [
 
 const configs = [
 	{
-		input: './src/index.js',
+		input: "./src/index.js",
 		output: {
-			file: 'dist/index.js',
-			format: 'umd',
-			name: 'eaglewisp',
+			file: "dist/index.js",
+			format: "umd",
+			name: "eaglewisp",
 			sourcemap: true,
-			exports: 'named',
+			exports: "named",
 		},
 		plugins: commonPlugins(),
 	},
