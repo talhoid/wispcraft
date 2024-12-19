@@ -16,136 +16,138 @@ export class wispWS {
 			this.ipPort[1] = 25565;
 		}
 		this.ipPort[1] = +this.ipPort[1];
-		const conn = new wisp.ClientConnection("ws://localhost:3000/");
-		conn.addEventListener("open", () => {
-			let partialPacket = [];
-			this.wispStream = conn.create_stream(this.ipPort[0], this.ipPort[1]);
-			this.wispStream.addEventListener("message", async (event) => {
-				await navigator.locks.request("fart", async () => {
-					const selfPacket = [...partialPacket, ...event.data];
-					partialPacket = [];
-					const res = readVarInt(selfPacket);
-					if (res.length < 2) {
-						partialPacket = selfPacket;
-						return;
-					}
-					const packetLen = res[0];
-					const packetOff = res[1];
-					if (selfPacket.length < packetOff + packetLen) {
-						partialPacket = selfPacket;
-						return;
-					}
-					let packetIdVI, packetId, packetIdOff, packet;
-					if (this.compression >= 0) {
-						const dataLenVI = readVarInt(
-							selfPacket.slice(packetOff, packetOff + packetLen)
-						);
-						if (dataLenVI.length < 2) {
-							partialPacket = selfPacket;
-							return;
-						}
-						let dataLen = dataLenVI[0];
-						const dataLenOff = dataLenVI[1];
-						const compressedPacket = selfPacket.slice(
-							packetOff + dataLenOff,
-							packetOff + packetLen
-						);
-						const chunks = [];
-						if (dataLen == 0) {
-							dataLen = packetLen - dataLenOff;
-							chunks.push(...compressedPacket);
-						} else {
-							const stream = new Blob([
-								new Uint8Array(ba2ab(compressedPacket)),
-							]).stream();
-							try {
-								const decompressedStream = stream.pipeThrough(
-									new DecompressionStream("deflate")
-								);
-								for await (const chunk of decompressedStream) {
-									chunks.push(...chunk);
-								}
-							} catch (e) {
-								partialPacket = selfPacket;
-								return;
-							}
-						}
-						if (chunks.length != dataLen) {
-							console.info(chunks.length + " " + dataLen);
-							partialPacket = selfPacket;
-							return;
-						}
-						packetIdVI = readVarInt(chunks.slice(0, dataLen));
-						if (packetIdVI.length < 2) {
-							partialPacket = selfPacket;
-							return;
-						}
-						packetId = packetIdVI[0];
-						packetIdOff = packetIdVI[1];
-						packet = chunks.slice(packetIdOff, dataLen);
-						partialPacket = selfPacket.slice(
-							packetOff + dataLenOff + compressedPacket.length
-						);
-					} else {
-						packetIdVI = readVarInt(
-							selfPacket.slice(packetOff, packetOff + packetLen)
-						);
-						if (packetIdVI.length < 2) {
-							partialPacket = selfPacket;
-							return;
-						}
-						packetId = packetIdVI[0];
-						packetIdOff = packetIdVI[1];
-						packet = selfPacket.slice(
-							packetOff + packetIdOff,
-							packetOff + packetLen
-						);
-						partialPacket = selfPacket.slice(packetOff + packetLen);
-					}
-					if (this.loggedIn) {
-						if (packetId == 0x46) {
-							this.compression = readVarInt(packet)[0];
-						} else {
-							this.emit("message", {
-								data: ba2ab([...makeVarInt(packetId), ...packet]),
-							});
-						}
-					} else if (packetId == 0x03) {
-						this.compression = readVarInt(packet)[0];
-					} else if (packetId == 0x02) {
-						this.emit("message", {
-							data: ba2ab([PROTOCOL_SERVER_FINISH_LOGIN]),
-						});
-						this.loggedIn = true;
-						for (let p of this.eag2wispQueue) {
-							const vi = readVarInt(p);
-							if (this.compression >= 0) {
-								p = new Uint8Array(
-									ba2ab(
-										await makeCompressedPacket(
-											vi[0],
-											p.slice(vi[1]),
-											this.compression
-										)
-									)
-								);
-							} else {
-								p = new Uint8Array(ba2ab(makePacket(vi[0], p.slice(vi[1]))));
-							}
-							this.wispStream.send(p);
-						}
-						this.eag2wispQueue = [];
-					} else if (packetId == 0x00) {
-						this.wispStream.close();
-					}
-				});
-			});
-			this.wispStream.addEventListener("close", (event) => {
-				this.emit("close", event.code);
-				conn.close();
-			});
+		this.wispStream = new oldWS(
+			"wss://anura.pro/" + this.ipPort[0] + ":" + this.ipPort[1]
+		);
+		this.wispStream.binaryType = "arraybuffer";
+		this.wispStream.onclose = (event) => {
+			this.emit("close", event.code);
+		};
+		this.wispStream.onopen = () => {
 			this.emit("open", {});
-		});
+		};
+		let partialPacket = [];
+		this.wispStream.onmessage = async (event) => {
+			await navigator.locks.request("fart", async () => {
+				const selfPacket = [...partialPacket, ...new Uint8Array(event.data)];
+				partialPacket = [];
+				const res = readVarInt(selfPacket);
+				if (res.length < 2) {
+					partialPacket = selfPacket;
+					return;
+				}
+				const packetLen = res[0];
+				const packetOff = res[1];
+				if (selfPacket.length < packetOff + packetLen) {
+					partialPacket = selfPacket;
+					return;
+				}
+				let packetIdVI, packetId, packetIdOff, packet;
+				if (this.compression >= 0) {
+					const dataLenVI = readVarInt(
+						selfPacket.slice(packetOff, packetOff + packetLen)
+					);
+					if (dataLenVI.length < 2) {
+						partialPacket = selfPacket;
+						return;
+					}
+					let dataLen = dataLenVI[0];
+					const dataLenOff = dataLenVI[1];
+					const compressedPacket = selfPacket.slice(
+						packetOff + dataLenOff,
+						packetOff + packetLen
+					);
+					if (compressedPacket.length != packetLen - dataLenOff) {
+						partialPacket = selfPacket;
+						return;
+					}
+					const chunks = [];
+					if (dataLen == 0) {
+						dataLen = packetLen - dataLenOff;
+						chunks.push(...compressedPacket);
+					} else {
+						const stream = new Blob([
+							new Uint8Array(compressedPacket),
+						]).stream();
+						try {
+							const decompressedStream = stream.pipeThrough(
+								new DecompressionStream("deflate")
+							);
+							for await (const chunk of decompressedStream) {
+								chunks.push(...chunk);
+							}
+						} catch (e) {
+							partialPacket = selfPacket;
+							return;
+						}
+					}
+					if (chunks.length != dataLen) {
+						partialPacket = selfPacket;
+						return;
+					}
+					packetIdVI = readVarInt(chunks.slice(0, dataLen));
+					if (packetIdVI.length < 2) {
+						partialPacket = selfPacket;
+						return;
+					}
+					packetId = packetIdVI[0];
+					packetIdOff = packetIdVI[1];
+					packet = chunks.slice(packetIdOff, dataLen);
+					partialPacket = selfPacket.slice(
+						packetOff + dataLenOff + compressedPacket.length
+					);
+				} else {
+					packetIdVI = readVarInt(
+						selfPacket.slice(packetOff, packetOff + packetLen)
+					);
+					if (packetIdVI.length < 2) {
+						partialPacket = selfPacket;
+						return;
+					}
+					packetId = packetIdVI[0];
+					packetIdOff = packetIdVI[1];
+					packet = selfPacket.slice(
+						packetOff + packetIdOff,
+						packetOff + packetLen
+					);
+					partialPacket = selfPacket.slice(packetOff + packetLen);
+				}
+				if (this.loggedIn) {
+					if (packetId == 0x46) {
+						this.compression = readVarInt(packet)[0];
+					} else {
+						this.emit("message", {
+							data: ba2ab([...makeVarInt(packetId), ...packet]),
+						});
+					}
+				} else if (packetId == 0x03) {
+					this.compression = readVarInt(packet)[0];
+				} else if (packetId == 0x02) {
+					this.emit("message", { data: ba2ab([PROTOCOL_SERVER_FINISH_LOGIN]) });
+					this.loggedIn = true;
+					for (let p of this.eag2wispQueue) {
+						const vi = readVarInt(p);
+						if (this.compression >= 0) {
+							p = new Uint8Array(
+								ba2ab(
+									await makeCompressedPacket(
+										vi[0],
+										p.slice(vi[1]),
+										this.compression
+									)
+								)
+							);
+						} else {
+							p = new Uint8Array(ba2ab(makePacket(vi[0], p.slice(vi[1]))));
+						}
+						this.wispStream.send(p);
+					}
+					this.eag2wispQueue = [];
+				} else if (packetId == 0x00) {
+					this.wispStream.close();
+				}
+			});
+		};
 	}
 	emit(ev, data) {
 		ev = ev.toLowerCase();
