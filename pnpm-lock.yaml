@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@mercuryworkshop/wisp-js':
-        specifier: ^0.3.3
-        version: 0.3.3
+        specifier: github:mercuryworkshop/wisp-client-js#rewrite
+        version: https://codeload.github.com/mercuryworkshop/wisp-client-js/tar.gz/e5ab93771fa2c8cc20ea00436efaed6c86f11923
     devDependencies:
       '@rollup/plugin-node-resolve':
         specifier: ^16.0.0
@@ -51,8 +51,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@mercuryworkshop/wisp-js@0.3.3':
-    resolution: {integrity: sha512-egc9jbBmNqPXGOkvOOG142SLaBL3jBkz0IGnhYYWOnmg5FeC6KfGSRU5xlk+dKYecE3tuH03bFNi3/vBAOoJKA==}
+  '@mercuryworkshop/wisp-js@https://codeload.github.com/mercuryworkshop/wisp-client-js/tar.gz/e5ab93771fa2c8cc20ea00436efaed6c86f11923':
+    resolution: {tarball: https://codeload.github.com/mercuryworkshop/wisp-client-js/tar.gz/e5ab93771fa2c8cc20ea00436efaed6c86f11923}
+    version: 0.3.3
     hasBin: true
 
   '@rollup/plugin-node-resolve@16.0.0':
@@ -333,7 +334,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@mercuryworkshop/wisp-js@0.3.3':
+  '@mercuryworkshop/wisp-js@https://codeload.github.com/mercuryworkshop/wisp-client-js/tar.gz/e5ab93771fa2c8cc20ea00436efaed6c86f11923':
     dependencies:
       bufferutil: 4.0.8
       commander: 12.1.0
