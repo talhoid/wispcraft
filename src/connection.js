@@ -10,6 +10,7 @@ import {
 import * as packets from "./packet/types";
 import { handleSkinCape } from "./skins";
 import { AsyncQueue } from "./asyncqueue";
+import { wispurl } from ".";
 
 export class wispWS {
 	constructor(uri) {
@@ -27,7 +28,7 @@ export class wispWS {
 			this.ipPort[1] = 25565;
 		}
 		this.ipPort[1] = +this.ipPort[1];
-		const conn = new wisp.ClientConnection("wss://anura.pro/");
+		const conn = new wisp.ClientConnection(wispurl);
 		const packetQueue = new AsyncQueue(1);
 		conn.onopen = async () => {
 			this.wispStream = conn.create_stream(this.ipPort[0], this.ipPort[1]);
@@ -44,8 +45,9 @@ export class wispWS {
 			this.emit("open", {});
 			let partialPacket = [];
 			while (isOpen) {
-				const data = await packetQueue.get() || [];
+				const data = (await packetQueue.get()) || [];
 				const selfPacket = [...partialPacket, ...data];
+				console.log("packet");
 				partialPacket = [];
 				const res = readVarInt(selfPacket);
 				if (res.length < 2) {
@@ -61,7 +63,7 @@ export class wispWS {
 				let packetId, packet;
 				if (this.compression >= 0) {
 					const dataLenVI = readVarInt(
-						selfPacket.slice(packetOff, packetOff + packetLen)
+						selfPacket.slice(packetOff, packetOff + packetLen),
 					);
 					if (dataLenVI.length < 2) {
 						partialPacket = selfPacket;
@@ -71,7 +73,7 @@ export class wispWS {
 					const dataLenOff = dataLenVI[1];
 					const compressedPacket = selfPacket.slice(
 						packetOff + dataLenOff,
-						packetOff + packetLen
+						packetOff + packetLen,
 					);
 					if (compressedPacket.length != packetLen - dataLenOff) {
 						partialPacket = selfPacket;
@@ -87,7 +89,7 @@ export class wispWS {
 						]).stream();
 						try {
 							const decompressedStream = stream.pipeThrough(
-								new DecompressionStream("deflate")
+								new DecompressionStream("deflate"),
 							);
 							for await (const chunk of decompressedStream) {
 								chunks.push(...chunk);
@@ -110,11 +112,11 @@ export class wispWS {
 					const packetIdOff = packetIdVI[1];
 					packet = chunks.slice(packetIdOff, dataLen);
 					partialPacket = selfPacket.slice(
-						packetOff + dataLenOff + compressedPacket.length
+						packetOff + dataLenOff + compressedPacket.length,
 					);
 				} else {
 					const packetIdVI = readVarInt(
-						selfPacket.slice(packetOff, packetOff + packetLen)
+						selfPacket.slice(packetOff, packetOff + packetLen),
 					);
 					if (packetIdVI.length < 2) {
 						partialPacket = selfPacket;
@@ -124,13 +126,15 @@ export class wispWS {
 					const packetIdOff = packetIdVI[1];
 					packet = selfPacket.slice(
 						packetOff + packetIdOff,
-						packetOff + packetLen
+						packetOff + packetLen,
 					);
 					partialPacket = selfPacket.slice(packetOff + packetLen);
 				}
-				if (packetId == 0x3F) {
+				if (packetId == 0x3f) {
 					const vivi = readVarInt(packet);
-					const tag = new TextDecoder().decode(Uint8Array.from(packet.slice(vivi[1], vivi[1] + vivi[0])));
+					const tag = new TextDecoder().decode(
+						Uint8Array.from(packet.slice(vivi[1], vivi[1] + vivi[0])),
+					);
 					if (tag.startsWith("EAG|")) {
 						return;
 					}
@@ -154,12 +158,12 @@ export class wispWS {
 						const vi = readVarInt(p);
 						if (this.compression >= 0) {
 							p = Uint8Array.from(
-									await makeCompressedPacket(
-										vi[0],
-										p.slice(vi[1]),
-										this.compression
-									)
-								);
+								await makeCompressedPacket(
+									vi[0],
+									p.slice(vi[1]),
+									this.compression,
+								),
+							);
 						} else {
 							p = Uint8Array.from(makePacket(vi[0], p.slice(vi[1])));
 						}
@@ -246,11 +250,11 @@ export class wispWS {
 									...makeString(this.ipPort[0]),
 									...makeShort(this.ipPort[1]),
 									...makeVarInt(2),
-								])
-							)
+								]),
+							),
 						);
 						this.wispStream.send(
-							Uint8Array.from(makePacket(0x00, [...makeString(this.username)]))
+							Uint8Array.from(makePacket(0x00, [...makeString(this.username)])),
 						);
 						break;
 					default:
@@ -260,15 +264,31 @@ export class wispWS {
 			const vi = readVarInt(p);
 			if (vi[0] == 0x17) {
 				const vivi = readVarInt(p);
-				const tag = new TextDecoder().decode(Uint8Array.from(p.slice(vivi[1], vivi[1] + vivi[0])));
+				const tag = new TextDecoder().decode(
+					Uint8Array.from(p.slice(vivi[1], vivi[1] + vivi[0])),
+				);
 				if (tag.startsWith("EAG|")) {
 					if (tag == "EAG|Skins-1.8" || tag == "EAG|Capes-1.8") {
 						const vivivi = readVarInt(p.slice(vivi[1] + vivi[0]));
-						handleSkinCape(tag[4] == "C", conn, p.slice(vivi[1] + vivi[0] + vivivi[1], vivi[1] + vivi[0] + vivivi[1] + vivivi[0]), (resp) => {
-							this.emit("message", {
-								data: Uint8Array.from([...makeVarInt(0x3F), ...makeVarInt(tag.length), ...(new TextEncoder().encode(tag)), ...makeVarInt(resp.length), ...resp]),
-							});
-						});
+						handleSkinCape(
+							tag[4] == "C",
+							conn,
+							p.slice(
+								vivi[1] + vivi[0] + vivivi[1],
+								vivi[1] + vivi[0] + vivivi[1] + vivivi[0],
+							),
+							(resp) => {
+								this.emit("message", {
+									data: Uint8Array.from([
+										...makeVarInt(0x3f),
+										...makeVarInt(tag.length),
+										...new TextEncoder().encode(tag),
+										...makeVarInt(resp.length),
+										...resp,
+									]),
+								});
+							},
+						);
 					}
 					return;
 				}
@@ -276,11 +296,7 @@ export class wispWS {
 			if (this.loggedIn) {
 				if (this.compression >= 0) {
 					p = Uint8Array.from(
-						await makeCompressedPacket(
-							vi[0],
-							p.slice(vi[1]),
-							this.compression
-						)
+						await makeCompressedPacket(vi[0], p.slice(vi[1]), this.compression),
 					);
 				} else {
 					p = Uint8Array.from(makePacket(vi[0], p.slice(vi[1])));
@@ -304,7 +320,7 @@ export class wispWS {
 		if (this.eventListeners[name]) {
 			if (cb && this.eventListeners[name].includes(cb)) {
 				this.eventListeners[name] = this.eventListeners[name].filter(
-					(el) => el != cb
+					(el) => el != cb,
 				);
 				if (this.eventListeners[name].length == 0) {
 					delete this.eventListeners[name];

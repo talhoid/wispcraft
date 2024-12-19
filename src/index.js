@@ -1,5 +1,17 @@
 import { nativeWebSocket } from "./snapshot";
 import { wispWS } from "./connection";
+import epoxy, {
+	EpoxyClient,
+	EpoxyClientOptions,
+} from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
+
+export const wispurl = "ws://localhost:6001/";
+
+export let epoxyClient;
+epoxy().then(() => {
+	let options = new EpoxyClientOptions();
+	epoxyClient = new EpoxyClient(wispurl, options);
+});
 
 window.WebSocket = class {
 	constructor(uri, protos) {
