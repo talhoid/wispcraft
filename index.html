@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<title>Wispcraft Injector</title>
+		<script src="https://unpkg.com/@rollup/browser/dist/rollup.browser.js"></script>
+		<link rel="preconnect" href="https://fonts.googleapis.com"/>
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+		<link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet"/>
+		<style>
+			a:not([href]) {
+				display: none;
+			}
+			*, ::file-selector-button {
+				font-family: 'Nunito', sans-serif;
+			}
+			body {
+				background-color: #111111;
+				color: #dddddd;
+			}
+			input[disabled] {
+				opacity: 0.8;
+			}
+			::file-selector-button, progress {
+				background-color: #343434;
+				color: #eeeeee;
+				border: 1px solid #eeeeee;
+				border-radius: 4px;
+			}
+			a, input[type=file] {
+				color: #dddddd;
+			}
+		</style>
+	</head>
+	<body>
+		<sub><a href="https://mercurywork.shop">A project by Mercury Workshop</a></sub>
+		<h1>Wispcraft Injector</h1>
+		<p>Inject WISP into your EaglercraftX 1.8 client and play on real Minecraft servers!</p>
+		Select .html file: <input type="file" onchange="selectFile(this);" accept=".html,.htm"/>
+		<br/>
+		<a download="wisped-eagler.html">Your Wispcraft-injected Eaglercraft client is ready!</a>
+		<script>
+			const downloadLink = document.querySelector('a[download]');
+
+			function selectFile(fileElem) {
+				downloadLink.removeAttribute('href');
+				fileElem.disabled = true;
+				if (fileElem.files.length > 0) {
+					const htmlFile = fileElem.files[0];
+					const reader = new FileReader();
+					reader.onload = function(e) {
+						let content = e.target.result;
+						const index = content.toLowerCase().indexOf('</head>');
+						if (index == -1) {
+							alert('Invalid client file!');
+							fileElem.value = '';
+							fileElem.removeAttribute('disabled');
+							return;
+						}
+						rollup.rollup({
+							input: './index',
+							plugins: [
+								{
+									name: 'url-resolver',
+									resolveId(source) {
+										if (source == '@mercuryworkshop/wisp-js/client') {
+											return 'https://www.unpkg.com/@mercuryworkshop/wisp-js/dist/wisp-client.mjs';
+										}
+										return new URL('src/' + source + '.js', window.location.href).href;
+									},
+									async load(id) {
+										const response = await fetch(id);
+										return response.text().replace('CLOSE,stream_id,', 'CLOSE,stream_id=this.stream_id,');
+									}
+								}
+							]
+						})
+						.then(bundle => bundle.generate({
+							format: 'iife'
+						}))
+						.then(({ output }) => {
+							// todo: do this better...
+							content = content.slice(0, index) + '<script type="text/javascript">' + output[0].code + '<' + '/script>' + content.slice(index);
+							const blob = new Blob([ content ], { type: 'text/html; charset=utf-8' })
+							downloadLink.download = 'wisped-' + htmlFile.name;
+							downloadLink.href = window.URL.createObjectURL(blob);
+							fileElem.value = '';
+							fileElem.removeAttribute('disabled');
+						});
+					};
+					reader.readAsText(htmlFile);
+				} else {
+					fileElem.removeAttribute('disabled');
+				}
+			}
+		</script>
+	</body>
+</html>

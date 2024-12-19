@@ -1,6 +1,5 @@
 import { client as wisp } from "@mercuryworkshop/wisp-js/client";
 import {
-	ba2ab,
 	makePacket,
 	makeString,
 	makeShort,
@@ -26,10 +25,6 @@ export class wispWS {
 			this.ipPort[1] = 25565;
 		}
 		this.ipPort[1] = +this.ipPort[1];
-		if (this.ipPort.length < 2 || !+this.ipPort[1]) {
-			this.ipPort[1] = 25565;
-		}
-		this.ipPort[1] = +this.ipPort[1];
 		const conn = new wisp.ClientConnection("ws://127.0.0.1:6969/");
 		conn.onopen = () => {
 			let partialPacket = [];
@@ -49,7 +44,7 @@ export class wispWS {
 						partialPacket = selfPacket;
 						return;
 					}
-					let packetIdVI, packetId, packetIdOff, packet;
+					let packetId, packet;
 					if (this.compression >= 0) {
 						const dataLenVI = readVarInt(
 							selfPacket.slice(packetOff, packetOff + packetLen)
@@ -92,19 +87,19 @@ export class wispWS {
 							partialPacket = selfPacket;
 							return;
 						}
-						packetIdVI = readVarInt(chunks.slice(0, dataLen));
+						const packetIdVI = readVarInt(chunks.slice(0, dataLen));
 						if (packetIdVI.length < 2) {
 							partialPacket = selfPacket;
 							return;
 						}
 						packetId = packetIdVI[0];
-						packetIdOff = packetIdVI[1];
+						const packetIdOff = packetIdVI[1];
 						packet = chunks.slice(packetIdOff, dataLen);
 						partialPacket = selfPacket.slice(
 							packetOff + dataLenOff + compressedPacket.length
 						);
 					} else {
-						packetIdVI = readVarInt(
+						const packetIdVI = readVarInt(
 							selfPacket.slice(packetOff, packetOff + packetLen)
 						);
 						if (packetIdVI.length < 2) {
@@ -112,7 +107,7 @@ export class wispWS {
 							return;
 						}
 						packetId = packetIdVI[0];
-						packetIdOff = packetIdVI[1];
+						const packetIdOff = packetIdVI[1];
 						packet = selfPacket.slice(
 							packetOff + packetIdOff,
 							packetOff + packetLen
@@ -124,30 +119,28 @@ export class wispWS {
 							this.compression = readVarInt(packet)[0];
 						} else {
 							this.emit("message", {
-								data: ba2ab([...makeVarInt(packetId), ...packet]),
+								data: Uint8Array.from([...makeVarInt(packetId), ...packet]),
 							});
 						}
 					} else if (packetId == 0x03) {
 						this.compression = readVarInt(packet)[0];
 					} else if (packetId == 0x02) {
 						this.emit("message", {
-							data: ba2ab([packets.PROTOCOL_SERVER_FINISH_LOGIN]),
+							data: Uint8Array.from([packets.PROTOCOL_SERVER_FINISH_LOGIN]),
 						});
 						this.loggedIn = true;
 						for (let p of this.eag2wispQueue) {
 							const vi = readVarInt(p);
 							if (this.compression >= 0) {
-								p = new Uint8Array(
-									ba2ab(
+								p = Uint8Array.from(
 										await makeCompressedPacket(
 											vi[0],
 											p.slice(vi[1]),
 											this.compression
 										)
-									)
-								);
+									);
 							} else {
-								p = new Uint8Array(ba2ab(makePacket(vi[0], p.slice(vi[1]))));
+								p = Uint8Array.from(makePacket(vi[0], p.slice(vi[1])));
 							}
 							this.wispStream.send(p);
 						}
@@ -159,7 +152,7 @@ export class wispWS {
 			};
 			this.wispStream.onclose = (event) => {
 				this.emit("close", event.code);
-				conn.close();
+				conn.ws.close();
 			};
 			this.emit("open", {});
 		};
@@ -184,7 +177,7 @@ export class wispWS {
 				switch (p[0]) {
 					case packets.PROTOCOL_CLIENT_VERSION:
 						this.emit("message", {
-							data: ba2ab([
+							data: Uint8Array.from([
 								packets.PROTOCOL_SERVER_VERSION,
 								0,
 								3,
@@ -203,7 +196,7 @@ export class wispWS {
 						this.username = new TextDecoder().decode(bytes);
 						// in line below: need to replace the 16 bytes with OfflinePlayer:(username) UUID in form of 8-byte long MSB, 8-byte long LSB
 						this.emit("message", {
-							data: ba2ab([
+							data: Uint8Array.from([
 								packets.PROTOCOL_SERVER_ALLOW_LOGIN,
 								this.username.length,
 								...bytes,
@@ -232,21 +225,17 @@ export class wispWS {
 					case packets.PROTOCOL_CLIENT_FINISH_LOGIN:
 						this.handshook = true;
 						this.wispStream.send(
-							new Uint8Array(
-								ba2ab(
-									makePacket(0x00, [
-										...makeVarInt(47),
-										...makeString(this.ipPort[0]),
-										...makeShort(this.ipPort[1]),
-										...makeVarInt(2),
-									])
-								)
+							Uint8Array.from(
+								makePacket(0x00, [
+									...makeVarInt(47),
+									...makeString(this.ipPort[0]),
+									...makeShort(this.ipPort[1]),
+									...makeVarInt(2),
+								])
 							)
 						);
 						this.wispStream.send(
-							new Uint8Array(
-								ba2ab(makePacket(0x00, [...makeString(this.username)]))
-							)
+							Uint8Array.from(makePacket(0x00, [...makeString(this.username)]))
 						);
 						break;
 					default:
@@ -256,17 +245,15 @@ export class wispWS {
 			if (this.loggedIn) {
 				const vi = readVarInt(p);
 				if (this.compression >= 0) {
-					p = new Uint8Array(
-						ba2ab(
-							await makeCompressedPacket(
-								vi[0],
-								p.slice(vi[1]),
-								this.compression
-							)
+					p = Uint8Array.from(
+						await makeCompressedPacket(
+							vi[0],
+							p.slice(vi[1]),
+							this.compression
 						)
 					);
 				} else {
-					p = new Uint8Array(ba2ab(makePacket(vi[0], p.slice(vi[1]))));
+					p = Uint8Array.from(makePacket(vi[0], p.slice(vi[1])));
 				}
 				this.wispStream.send(p);
 			} else {

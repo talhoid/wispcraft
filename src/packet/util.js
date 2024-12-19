@@ -1,13 +1,3 @@
-function ba2ab(byteArray) {
-	const arrayBuffer = new ArrayBuffer(byteArray.length);
-	const uint8Array = new Uint8Array(arrayBuffer);
-
-	for (let i = 0; i < byteArray.length; i++) {
-		uint8Array[i] = byteArray[i];
-	}
-
-	return arrayBuffer;
-}
 function makePacket(packetId, dataByteArray) {
 	const packetIdVarInt = makeVarInt(packetId);
 	return [
@@ -53,7 +43,7 @@ async function makeCompressedPacket(packetId, dataByteArray, thresh) {
 	const toCompress = [...makeVarInt(packetId), ...dataByteArray];
 	if (thresh >= 0 && toCompress.length > thresh) {
 		const lenUncompressed = makeVarInt(toCompress.length);
-		const stream = new Blob([new Uint8Array(ba2ab(toCompress))]).stream();
+		const stream = new Blob([Uint8Array.from(toCompress)]).stream();
 		const compressedStream = stream.pipeThrough(
 			new CompressionStream("deflate")
 		);
@@ -77,7 +67,6 @@ async function makeCompressedPacket(packetId, dataByteArray, thresh) {
 }
 
 export {
-	ba2ab,
 	makePacket,
 	makeString,
 	makeShort,
