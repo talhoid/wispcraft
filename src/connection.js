@@ -12,12 +12,12 @@ import { handleSkinCape } from "./skins";
 import { AsyncQueue } from "./asyncqueue";
 import { wispurl } from ".";
 
-export class wispWS {
+export class wispWS extends EventTarget {
 	constructor(uri) {
+		super();
 		this.binaryType = "blob";
 		this.readyState = "";
 		this.url = uri.slice(uri.indexOf("://") + 3);
-		this.eventListeners = [];
 		this.handshook = false;
 		this.loggedIn = false;
 		this.compression = -1;
@@ -40,10 +40,10 @@ export class wispWS {
 			this.wispStream.onclose = (event) => {
 				isOpen = false;
 				packetQueue.close();
-				this.emit("close", event.code);
+				this.dispatchEvent(new CloseEvent("close", event.code));
 				conn.ws.close();
 			};
-			this.emit("open", {});
+			this.dispatchEvent(new Event("open"));
 			let partialPacket = [];
 			while (isOpen) {
 				const selfPacket = [...partialPacket];
@@ -123,16 +123,20 @@ export class wispWS {
 						if (packetId == 0x46) {
 							this.compression = readVarInt(packet)[0];
 						} else {
-							this.emit("message", {
-								data: Uint8Array.from([...makeVarInt(packetId), ...packet]),
-							});
+							this.dispatchEvent(
+								new MessageEvent("message", {
+									data: Uint8Array.from([...makeVarInt(packetId), ...packet]),
+								}),
+							);
 						}
 					} else if (packetId == 0x03) {
 						this.compression = readVarInt(packet)[0];
 					} else if (packetId == 0x02) {
-						this.emit("message", {
-							data: Uint8Array.from([packets.PROTOCOL_SERVER_FINISH_LOGIN]),
-						});
+						this.dispatchEvent(
+							new MessageEvent("message", {
+								data: Uint8Array.from([packets.PROTOCOL_SERVER_FINISH_LOGIN]),
+							}),
+						);
 						this.loggedIn = true;
 						for (let p of this.eag2wispQueue) {
 							const vi = readVarInt(p);
@@ -157,15 +161,6 @@ export class wispWS {
 			}
 		};
 	}
-	emit(ev, data) {
-		ev = ev.toLowerCase();
-		if (this["on" + ev]) {
-			this["on" + ev](data);
-		}
-		if (this.eventListeners[ev]) {
-			this.eventListeners[ev].forEach((cb) => cb(data));
-		}
-	}
 	close(c) {
 		if (this.wispStream) {
 			this.wispStream.close(c);
@@ -176,48 +171,52 @@ export class wispWS {
 			if (!this.handshook) {
 				switch (p[0]) {
 					case packets.PROTOCOL_CLIENT_VERSION:
-						this.emit("message", {
-							data: Uint8Array.from([
-								packets.PROTOCOL_SERVER_VERSION,
-								0,
-								3,
-								0,
-								47,
-								0,
-								0,
-								0,
-								0,
-								0,
-							]),
-						});
+						this.dispatchEvent(
+							new MessageEvent("message", {
+								data: Uint8Array.from([
+									packets.PROTOCOL_SERVER_VERSION,
+									0,
+									3,
+									0,
+									47,
+									0,
+									0,
+									0,
+									0,
+									0,
+								]),
+							}),
+						);
 						break;
 					case packets.PROTOCOL_CLIENT_REQUEST_LOGIN:
 						const bytes = p.slice(2, p[1] + 2);
 						this.username = new TextDecoder().decode(Uint8Array.from(bytes));
 						// in line below: need to replace the 16 bytes with OfflinePlayer:(username) UUID in form of 8-byte long MSB, 8-byte long LSB
-						this.emit("message", {
-							data: Uint8Array.from([
-								packets.PROTOCOL_SERVER_ALLOW_LOGIN,
-								this.username.length,
-								...bytes,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-								0,
-							]),
-						});
+						this.dispatchEvent(
+							new MessageEvent("message", {
+								data: Uint8Array.from([
+									packets.PROTOCOL_SERVER_ALLOW_LOGIN,
+									this.username.length,
+									...bytes,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+								]),
+							}),
+						);
 						break;
 					case packets.PROTOCOL_CLIENT_PROFILE_DATA:
 						// ignore for now
@@ -259,15 +258,17 @@ export class wispWS {
 								vivi[1] + vivi[0] + vivivi[1] + vivivi[0],
 							),
 							(resp) => {
-								this.emit("message", {
-									data: Uint8Array.from([
-										...makeVarInt(0x3f),
-										...makeVarInt(tag.length),
-										...new TextEncoder().encode(tag),
-										...makeVarInt(resp.length),
-										...resp,
-									]),
-								});
+								this.dispatchEvent(
+									new MessageEvent("message", {
+										data: Uint8Array.from([
+											...makeVarInt(0x3f),
+											...makeVarInt(tag.length),
+											...new TextEncoder().encode(tag),
+											...makeVarInt(resp.length),
+											...resp,
+										]),
+									}),
+								);
 							},
 						);
 					}
@@ -285,29 +286,6 @@ export class wispWS {
 				await this.wispStream.send(p);
 			} else {
 				this.eag2wispQueue.push(p);
-			}
-		}
-	}
-	addEventListener(name, cb) {
-		name = name.toLowerCase();
-		if (this.eventListeners[name]) {
-			this.eventListeners[name].push(callback);
-		} else {
-			this.eventListeners[name] = [cb];
-		}
-	}
-	removeEventListener(name, cb) {
-		name = name.toLowerCase();
-		if (this.eventListeners[name]) {
-			if (cb && this.eventListeners[name].includes(cb)) {
-				this.eventListeners[name] = this.eventListeners[name].filter(
-					(el) => el != cb,
-				);
-				if (this.eventListeners[name].length == 0) {
-					delete this.eventListeners[name];
-				}
-			} else if (!cb) {
-				delete this.eventListeners[name];
 			}
 		}
 	}
