@@ -30,13 +30,13 @@ export class wispWS {
 			this.ipPort[1] = 25565;
 		}
 		this.ipPort[1] = +this.ipPort[1];
-		const conn = new wisp.ClientConnection("wss://anura.pro/");
+		const conn = new wisp.ClientConnection("ws://127.0.0.1:6969/");
 		conn.onopen = () => {
 			let partialPacket = [];
 			this.wispStream = conn.create_stream(this.ipPort[0], this.ipPort[1]);
-			this.wispStream.onmessage = async (event) => {
+			this.wispStream.onmessage = async (data) => {
 				await navigator.locks.request("fart", async () => {
-					const selfPacket = [...partialPacket, ...event.data];
+					const selfPacket = [...partialPacket, ...data];
 					partialPacket = [];
 					const res = readVarInt(selfPacket);
 					if (res.length < 2) {
