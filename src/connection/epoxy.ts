@@ -4,7 +4,7 @@ import initEpoxy, {
 	EpoxyClientOptions,
 } from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
 
-export let wisp = "ws://localhost:5001/";
+export let wisp = (new URLSearchParams(location.search)).get("wisp") || "ws://localhost:5001/";
 let connectedwisp = "";
 
 let initted = false;
@@ -30,14 +30,14 @@ export async function fetch(url: string, opts?: any): Promise<Response> {
 	await create();
 
 	// create() inits epoxy
-	return epoxy!.fetch(url, opts);
+	return await epoxy!.fetch(url, opts);
 }
 
 export async function connect_tcp(socket: string): Promise<EpoxyIoStream> {
 	await create();
 
 	// create() inits epoxy
-	return epoxy!.connect_tcp(socket);
+	return await epoxy!.connect_tcp(socket);
 }
 
 export async function reconnect() {

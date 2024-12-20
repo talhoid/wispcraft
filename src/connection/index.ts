@@ -4,7 +4,6 @@ import { Buffer } from "../buffer";
 import {
 	bufferTransformer,
 	bufferWriter,
-	Decompressor,
 	eagerlyPoll,
 	lengthTransformer,
 } from "./framer";
@@ -73,8 +72,9 @@ export class Connection {
 		this.impl = new EaglerProxy();
 	}
 
-	async forward() {
+	async forward(connectcallback: () => void) {
 		const conn = await connect_tcp(this.socketaddr);
+		connectcallback();
 		const writer = bufferWriter(conn.write).getWriter();
 
 		// epoxy -> process -> (hopefully) eagler task
