@@ -1,6 +1,7 @@
 import nodeResolve from "@rollup/plugin-node-resolve";
 import replace from "@rollup/plugin-replace";
 import terser from "@rollup/plugin-terser";
+import typescript from 'rollup-plugin-typescript2';
 
 import { execSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
@@ -8,6 +9,7 @@ import { readFile } from "node:fs/promises";
 const pkg = JSON.parse(await readFile("package.json"));
 
 const commonPlugins = () => [
+  typescript(),
 	terser(),
 	nodeResolve({
 		browser: true,
