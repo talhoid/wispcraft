@@ -40,7 +40,7 @@ export class wispWS extends EventTarget {
 			this.wispStream.addEventListener("close", (event) => {
 				isOpen = false;
 				packetQueue.close();
-				this.dispatchEvent(new CloseEvent("close", event.code));
+				this.dispatchEvent(new CloseEvent("close", event));
 				conn.ws.close();
 			});
 			this.dispatchEvent(new Event("open"));
