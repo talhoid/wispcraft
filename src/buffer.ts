@@ -7,9 +7,13 @@ export class Buffer {
 		return new Buffer(new Uint8Array());
 	}
 
-	constructor(inner: Uint8Array | number[]) {
+	constructor(inner: Uint8Array | number[], copy?: boolean) {
 		if (inner instanceof Uint8Array) {
-			this.inner = inner;
+			if (copy) {
+				this.inner = inner.slice();
+			} else {
+				this.inner = inner;
+			}
 		} else {
 			this.inner = Uint8Array.from(inner);
 		}
