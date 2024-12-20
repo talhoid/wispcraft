@@ -1,8 +1,8 @@
-import { Buffer } from "./buf";
+import { Buffer } from "../buffer";
 
 function writeTransform<I, O>(
 	stream: WritableStream<I>,
-	transformer: (val: O) => I
+	transformer: (val: O) => I,
 ): WritableStream<O> {
 	const writer = stream.getWriter();
 	return new WritableStream({
@@ -60,7 +60,7 @@ export function bufferTransformer(): TransformStream<Uint8Array, Buffer> {
 }
 
 export function bufferWriter(
-	write: WritableStream<Uint8Array>
+	write: WritableStream<Uint8Array>,
 ): WritableStream<Buffer> {
 	return writeTransform(write, (x) => x.inner);
 }
@@ -106,7 +106,7 @@ export class Decompressor {
 					controller.enqueue(await decompress(chunk));
 				} else {
 					throw new Error(
-						"Decompressor: server sent compressed packet below threshold"
+						"Decompressor: server sent compressed packet below threshold",
 					);
 				}
 			},

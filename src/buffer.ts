@@ -34,6 +34,28 @@ export class Buffer {
 		return this.inner.length;
 	}
 
+	readString(): string {
+		const len = this.readVarInt();
+		if (!len) throw new Error("data too small");
+		const ret = new TextDecoder().decode(this.take(len).inner);
+		return ret;
+	}
+
+	writeString(str: string) {
+		const data = new TextEncoder().encode(str);
+		this.writeVarInt(data.length);
+		this.extend(new Buffer(data));
+	}
+
+	readUShort(): number {
+		const ret = this.inner[0] | (this.inner[1] << 8);
+		this.take(2);
+		return ret;
+	}
+	writeUShort(num: number) {
+		this.extend(new Buffer([num & 0xff, (num >> 8) & 0xff]));
+	}
+
 	// you can probably make this better
 	readVarInt(): number | undefined {
 		let index = 0;

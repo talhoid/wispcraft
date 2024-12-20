@@ -1,46 +1,76 @@
-import { Connection } from "./connection";
-import { Buffer } from "./connection/buf";
-import { NativeWebSocket } from "./snapshot";
+import { BytesWriter, Connection } from "./connection";
+import { Buffer } from "./buffer";
+import { Decompressor } from "./connection/framer";
+import { makeFakeWebSocket } from "./connection/fakewebsocket";
 
-class WispWS extends EventTarget {
-	inner: Connection;
+// https://minecraft.wiki/w/Protocol?oldid=2772100
+enum State {
+	Handshaking = 0x0,
+	Status = 0x1, // unused
+	Login = 0x2,
+	Play = 0x3,
+}
 
-	constructor(uri: string) {
-		super();
+enum Serverbound {
+	/* ==HANDSHAKING== */
+	Handshake = 0x0,
+	/* ==LOGIN== */
+	LoginStart = 0x0,
+	EncryptionResponse = 0x01,
+	/* ==PLAY== */
+}
 
-		this.inner = new Connection(uri);
+enum Clientbound {
+	/* --LOGIN-- */
+	Disconnect = 0x0,
+	EncryptionRequest = 0x01,
+	LoginSuccess = 0x02,
+	SetCompression = 0x03,
+}
+
+export class EaglerProxy {
+	loggedIn: boolean = false;
+	handshook: boolean = false;
+	decompressor = new Decompressor();
+
+	state: State = State.Handshaking;
+
+	// consumes packets from eagler, sends them to the upstream server
+	async eaglerRead(packet: Buffer, epoxyWrite: BytesWriter) {
+		console.log(packet);
+		switch (this.state) {
+			case State.Handshaking:
+				switch (packet.readVarInt()) {
+					case Serverbound.Handshake:
+						const protocolVersion = packet.readVarInt();
+						const serverAddress = packet.readString();
+						const serverPort = packet.readUShort();
+						const nextState = packet.readVarInt();
+
+						console.log("Handshake", {
+							protocolVersion,
+							serverAddress,
+							serverPort,
+							nextState,
+						});
+
+						if (nextState == State.Login) {
+							this.state = State.Login;
+						}
+						break;
+				}
+				break;
+			case State.Status:
+				break;
+			case State.Login:
+			case State.Play:
+		}
 	}
 
-	start() {
-		this.inner.forward();
-		(async () => {
-			while (true) {
-				const { done, value } = await this.inner.eaglerOut.read();
-				if (done || !value) return;
-
-				this.dispatchEvent(new MessageEvent("message", { data: value }));
-			}
-			// TODO cleanup
-		})();
-	}
-
-	send(chunk: Uint8Array) {
-		this.inner.eaglerIn.write(new Buffer(chunk));
-	}
-
-	close() {
-		this.inner.eaglerIn.close();
+	// consumes packets from the network, sends them to eagler
+	async epoxyRead(packet: Buffer, eaglerWrite: BytesWriter) {
+		console.log(packet);
 	}
 }
 
-window.WebSocket = new Proxy(WebSocket, {
-	construct(_target, [uri, protos]) {
-		if (("" + uri).toLowerCase().includes("://java://")) {
-			const ws = new WispWS(uri);
-			ws.start();
-			return ws;
-		} else {
-			return new NativeWebSocket(uri, protos);
-		}
-	},
-});
+window.WebSocket = makeFakeWebSocket();

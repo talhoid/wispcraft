@@ -4,15 +4,15 @@ import initEpoxy, {
 	EpoxyClientOptions,
 } from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
 
-export let wisp = "ws://localhost:6001/";
+export let wisp = "ws://localhost:5001/";
 let connectedwisp = "";
 
 let initted = false;
 let epoxy: EpoxyClient | null = null;
 
+initEpoxy();
 async function create() {
 	if (!initted) {
-		initEpoxy();
 		initted = false;
 	}
 
