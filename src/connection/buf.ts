@@ -69,4 +69,9 @@ export class Buffer {
 		buffer.push(num);
 		this.extend(new Buffer(Uint8Array.from(buffer)));
 	}
+
+	writeVariableData(data: Buffer) {
+		this.writeVarInt(data.length);
+		this.extend(data);
+	}
 }

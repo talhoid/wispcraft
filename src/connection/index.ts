@@ -6,7 +6,7 @@ import {
 	bufferWriter,
 	Decompressor,
 	eagerlyPoll,
-	lengthFramer,
+	lengthTransformer,
 } from "./framer";
 
 type BytesReader = ReadableStreamDefaultReader<Buffer>;
@@ -83,7 +83,7 @@ export class Connection {
 			const reader = eagerlyPoll(
 				conn.read
 					.pipeThrough(bufferTransformer())
-					.pipeThrough(lengthFramer())
+					.pipeThrough(lengthTransformer())
 					.pipeThrough(this.decompressor.transform)
 			).getReader();
 

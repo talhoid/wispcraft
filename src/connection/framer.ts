@@ -1,5 +1,20 @@
 import { Buffer } from "./buf";
 
+function writeTransform<I, O>(
+	stream: WritableStream<I>,
+	transformer: (val: O) => I
+): WritableStream<O> {
+	const writer = stream.getWriter();
+	return new WritableStream({
+		write(val, _) {
+			writer.write(transformer(val));
+		},
+		close() {
+			writer.close();
+		},
+	});
+}
+
 async function compress(buf: Buffer): Promise<Buffer> {
 	const compressor = new CompressionStream("deflate");
 
@@ -47,15 +62,10 @@ export function bufferTransformer(): TransformStream<Uint8Array, Buffer> {
 export function bufferWriter(
 	write: WritableStream<Uint8Array>
 ): WritableStream<Buffer> {
-	const writer = write.getWriter();
-	return new WritableStream({
-		async write(thing) {
-			writer.write(thing.inner);
-		},
-	});
+	return writeTransform(write, (x) => x.inner);
 }
 
-export function lengthFramer(): TransformStream<Buffer> {
+export function lengthTransformer(): TransformStream<Buffer> {
 	let currentPacket = Buffer.new();
 	return new TransformStream({
 		transform(chunk, controller) {
