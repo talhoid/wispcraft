@@ -24,7 +24,7 @@ enum Serverbound {
 
 enum Clientbound {
 	/* ==HANDSHAKING== */
-	EAG_ServerVersion = 0x01,
+	EAG_ServerVersion = 0x02,
 	EAG_AllowLogin = 0x05,
 	/* ==LOGIN== */
 	Disconnect = 0x0,
@@ -61,27 +61,34 @@ export class EaglerProxy {
 
 	state: State = State.Handshaking;
 
+	net: BytesWriter;
+	eagler: BytesWriter;
+
+	constructor(eaglerOut: BytesWriter, epoxyOut: BytesWriter) {
+		this.net = epoxyOut;
+		this.eagler = eaglerOut;
+	}
+
 	// consumes packets from eagler, sends them to the upstream server
-	async eaglerRead(packet: Buffer, writer: BytesWriter) {
+	async eaglerRead(packet: Buffer) {
+		console.log(packet);
 		console.log(packet.toArray(), packet.toStr());
 		switch (this.state) {
 			case State.Handshaking:
-				if (serverboundNonstandard.includes(packet.get(0))) {
-					const pk = packet.get(0);
-					packet.take(1);
-					switch (pk) {
-						case Serverbound.EAG_ClientVersion:
-							console.log("Client version request");
-							// eagler specific packet, return a fake version number
-							let ver = new Packet(Clientbound.EAG_ServerVersion);
-							ver.writeBytes([3, 0, 47, 0, 0, 0, 0, 0]); // idk what these mean ayun fill this in
-							ver.transmit(writer);
-							return;
-						case Serverbound.EAG_RequestLogin:
-							let username = packet.readString();
-							console.log("User " + username + " requested login");
-							return;
-					}
+				switch (packet.readVarInt()) {
+					case Serverbound.EAG_ClientVersion:
+						console.log("Client version request");
+						// eagler specific packet, return a fake version number
+						let ver = new Packet(Clientbound.EAG_ServerVersion);
+						ver.writeBytes([0, 3, 0, 47, 0, 0, 0, 0, 0]); // idk what these mean ayun fill this in
+						ver.transmit(this.eagler);
+						return;
+					case Serverbound.EAG_RequestLogin:
+						console.log(packet);
+						console.log(packet.get(1));
+						let username = packet.readString();
+						console.log("User " + username + " requested login");
+						return;
 				}
 				break;
 			case State.Status:
@@ -92,8 +99,8 @@ export class EaglerProxy {
 	}
 
 	// consumes packets from the network, sends them to eagler
-	async epoxyRead(packet: Buffer, eaglerWrite: BytesWriter) {
-		console.log(packet);
+	async epoxyRead(packet: Buffer) {
+		console.log(packet.toArray(), packet.toStr());
 	}
 }
 
