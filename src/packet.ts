@@ -56,7 +56,11 @@ export function readVarInt(buffer: number[]): [number, number] | undefined {
 	return [result, index];
 }
 
-export async function makeCompressedPacket(packetId: number, dataByteArray: number[], thresh: number) {
+export async function makeCompressedPacket(
+	packetId: number,
+	dataByteArray: number[],
+	thresh: number
+) {
 	const toCompress = [...makeVarInt(packetId), ...dataByteArray];
 	if (thresh >= 0 && toCompress.length > thresh) {
 		const lenUncompressed = makeVarInt(toCompress.length);

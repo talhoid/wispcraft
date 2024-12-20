@@ -21,7 +21,7 @@ async function create() {
 		options.wisp_v2 = false;
 		options.udp_extension_required = false;
 		connectedwisp = wisp;
-		return epoxy = new EpoxyClient(wisp, options);
+		return (epoxy = new EpoxyClient(wisp, options));
 	}
 }
 

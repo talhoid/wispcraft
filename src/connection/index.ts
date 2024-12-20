@@ -1,4 +1,5 @@
-import { connect_tcp } from "./epoxy";
+import { connect_tcp } from "../epoxy";
+import { bufferMaker, Decompressor, eagerlyPoll, lengthFramer } from "./framer";
 
 type BytesReader = ReadableStreamDefaultReader<Uint8Array>;
 type BytesWriter = WritableStreamDefaultWriter<Uint8Array>;
@@ -15,7 +16,7 @@ export class Connection {
 
 	socketaddr: string;
 
-	partial: number[][] = [];
+	decompressor: Decompressor = new Decompressor();
 
 	constructor(uri: string) {
 		// TODO handle close lol
@@ -28,19 +29,19 @@ export class Connection {
 		this.eaglerIn = new WritableStream({
 			write(chunk) {
 				inController.enqueue(chunk);
-			}
+			},
 		}).getWriter();
 
 		let outController: ReadableStreamDefaultController<Uint8Array>;
 		this.eaglerOut = new ReadableStream({
 			start(controller) {
 				outController = controller;
-			}
+			},
 		}).getReader();
 		this.processOut = new WritableStream({
 			write(chunk) {
 				outController.enqueue(chunk);
-			}
+			},
 		}).getWriter();
 
 		// ayunami code
@@ -68,7 +69,13 @@ export class Connection {
 
 		// epoxy -> process -> (hopefully) eagler task
 		(async () => {
-			const reader = conn.read.getReader();
+			const reader = eagerlyPoll(
+				conn.read
+					.pipeThrough(bufferMaker())
+					.pipeThrough(lengthFramer())
+					.pipeThrough(this.decompressor.transform)
+			).getReader();
+
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done || !value) return;
@@ -92,12 +99,8 @@ export class Connection {
 	}
 
 	// something incoming from eagler
-	async eaglerRead(packet: Uint8Array, epoxyWrite: BytesWriter) {
-
-	}
+	async eaglerRead(packet: Uint8Array, epoxyWrite: BytesWriter) {}
 
 	// something incoming from epoxy
-	async epoxyRead(packet: Uint8Array, epoxyWrite: BytesWriter) {
-
-	}
+	async epoxyRead(packet: Uint8Array, epoxyWrite: BytesWriter) {}
 }
