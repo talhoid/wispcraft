@@ -13,7 +13,8 @@ let epoxy: EpoxyClient | null = null;
 initEpoxy();
 async function create() {
 	if (!initted) {
-		initted = false;
+		await initEpoxy();
+		initted = true;
 	}
 
 	if (!epoxy || wisp != connectedwisp) {
@@ -25,22 +26,22 @@ async function create() {
 	}
 }
 
-export async function fetch(url: string, opts: any): Promise<Response> {
-	create();
+export async function fetch(url: string, opts?: any): Promise<Response> {
+	await create();
 
 	// create() inits epoxy
 	return epoxy!.fetch(url, opts);
 }
 
 export async function connect_tcp(socket: string): Promise<EpoxyIoStream> {
-	create();
+	await create();
 
 	// create() inits epoxy
 	return epoxy!.connect_tcp(socket);
 }
 
 export async function reconnect() {
-	create();
+	await create();
 
 	// create() inits epoxy
 	await epoxy!.replace_stream_provider();
