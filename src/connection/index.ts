@@ -49,8 +49,6 @@ export class Connection {
 
 	socketaddr: string;
 
-	impl: EaglerProxy;
-
 	constructor(uri: string) {
 		const [processIn, eaglerIn] = link<Buffer>();
 		this.processIn = processIn.getReader();
@@ -77,8 +75,6 @@ export class Connection {
 		}
 
 		this.socketaddr = ipPort;
-
-		this.impl = new EaglerProxy();
 	}
 
 	async forward(connectcallback: () => void) {
@@ -86,20 +82,22 @@ export class Connection {
 		connectcallback();
 		const writer = bufferWriter(conn.write).getWriter();
 
+		const impl = new EaglerProxy(this.processOut, writer);
+
 		// epoxy -> process -> (hopefully) eagler task
 		(async () => {
 			const reader = eagerlyPoll<Buffer>(
 				conn.read
 					.pipeThrough(bufferTransformer())
 					.pipeThrough(lengthTransformer())
-					.pipeThrough(this.impl.decompressor.transform)
+					.pipeThrough(impl.decompressor.transform)
 			).getReader();
 
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done || !value) return;
 
-				await this.impl.epoxyRead(value, writer);
+				await impl.epoxyRead(value);
 			}
 
 			// TODO cleanup
@@ -111,8 +109,9 @@ export class Connection {
 				const { done, value } = await this.processIn.read();
 				if (done || !value) return;
 
-				await this.impl.eaglerRead(value, writer);
+				await impl.eaglerRead(value);
 			}
+
 			// TODO cleanup
 		})();
 	}

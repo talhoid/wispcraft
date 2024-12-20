@@ -34,8 +34,16 @@ export class EaglerProxy {
 
 	state: State = State.Handshaking;
 
+	net: BytesWriter;
+	eagler: BytesWriter;
+
+	constructor(eaglerOut: BytesWriter, epoxyOut: BytesWriter) {
+		this.net = epoxyOut;
+		this.eagler = eaglerOut;
+	}
+
 	// consumes packets from eagler, sends them to the upstream server
-	async eaglerRead(packet: Buffer, epoxyWrite: BytesWriter) {
+	async eaglerRead(packet: Buffer) {
 		console.log(packet.toArray(), packet.toStr());
 		switch (this.state) {
 			case State.Handshaking:
@@ -67,8 +75,8 @@ export class EaglerProxy {
 	}
 
 	// consumes packets from the network, sends them to eagler
-	async epoxyRead(packet: Buffer, eaglerWrite: BytesWriter) {
-		console.log(packet);
+	async epoxyRead(packet: Buffer) {
+		console.log(packet.toArray(), packet.toStr());
 	}
 }
 

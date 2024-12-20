@@ -35,15 +35,19 @@ class WispWS extends EventTarget {
 	}
 
 	send(chunk: Uint8Array | string) {
-		if (typeof chunk == "string") return;
-		console.log(chunk);
+		if (typeof chunk == "string") {
+			console.warn("IGNORING PACKET: ", chunk);
+			return;
+		}
 		this.inner.eaglerIn.write(new Buffer(chunk, true));
 	}
 
 	close() {
-		try {
-			this.inner.eaglerIn.close();
-		} catch (err) {}
+		(async ()=>{
+			try {
+				await this.inner.eaglerIn.close();
+			} catch (err) {}
+		})();
 	}
 }
 
