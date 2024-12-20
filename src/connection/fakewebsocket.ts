@@ -24,7 +24,9 @@ class WispWS extends EventTarget {
 	}
 
 	start() {
-		this.inner.forward(() => { this.dispatchEvent(new Event("open")); });
+		this.inner.forward(() => {
+			this.dispatchEvent(new Event("open"));
+		});
 		(async () => {
 			while (true) {
 				const { done, value } = await this.inner.eaglerOut.read();
@@ -37,7 +39,7 @@ class WispWS extends EventTarget {
 	}
 
 	send(chunk: Uint8Array) {
-		console.log("sending", chunk);
+		if (typeof chunk == "string") return;
 		this.inner.eaglerIn.write(new Buffer(chunk));
 	}
 
@@ -53,17 +55,7 @@ export function makeFakeWebSocket(): typeof WebSocket {
 			if (("" + uri).toLowerCase().includes("://java://")) {
 				const ws = new WispWS(uri);
 				ws.start();
-				return new Proxy(ws, {
-					get(target, p, receiver) {
-						console.log("get", target, p, receiver);
-						const ret = Reflect.get(target, p);
-						if (ret instanceof Function) {
-							return ret.bind(target);
-						} else {
-							return ret;
-						}
-					},
-				});
+				return ws;
 			} else {
 				return new NativeWebSocket(uri, protos);
 			}
