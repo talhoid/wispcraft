@@ -1,4 +1,5 @@
 import { Connection } from "./connection";
+import { Buffer } from "./connection/buf";
 import { NativeWebSocket } from "./snapshot";
 
 class WispWS extends EventTarget {
@@ -24,7 +25,7 @@ class WispWS extends EventTarget {
 	}
 
 	send(chunk: Uint8Array) {
-		this.inner.eaglerIn.write(chunk);
+		this.inner.eaglerIn.write(new Buffer(chunk));
 	}
 
 	close() {

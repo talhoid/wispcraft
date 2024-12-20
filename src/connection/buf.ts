@@ -43,4 +43,14 @@ export class Buffer {
 		this.take(index);
 		return result;
 	}
+
+	writeVarInt(num: number) {
+		const buffer: number[] = [];
+		while (num > 127) {
+			buffer.push((num & 127) | 128);
+			num >>>= 7;
+		}
+		buffer.push(num);
+		this.extend(new Buffer(Uint8Array.from(buffer)));
+	}
 }

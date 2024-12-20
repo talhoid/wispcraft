@@ -1,8 +1,9 @@
 import { connect_tcp } from "../epoxy";
-import { bufferMaker, Decompressor, eagerlyPoll, lengthFramer } from "./framer";
+import { Buffer } from "./buf";
+import { bufferTransformer, bufferWriter, Decompressor, eagerlyPoll, lengthFramer } from "./framer";
 
-type BytesReader = ReadableStreamDefaultReader<Uint8Array>;
-type BytesWriter = WritableStreamDefaultWriter<Uint8Array>;
+type BytesReader = ReadableStreamDefaultReader<Buffer>;
+type BytesWriter = WritableStreamDefaultWriter<Buffer>;
 
 export class Connection {
 	// used by fake websocket
@@ -17,6 +18,8 @@ export class Connection {
 	socketaddr: string;
 
 	decompressor: Decompressor = new Decompressor();
+
+	loggedIn: boolean = false;
 
 	constructor(uri: string) {
 		// TODO handle close lol
@@ -65,13 +68,13 @@ export class Connection {
 
 	async forward() {
 		const conn = await connect_tcp(this.socketaddr);
-		const writer = conn.write.getWriter();
+		const writer = bufferWriter(conn.write).getWriter();
 
 		// epoxy -> process -> (hopefully) eagler task
 		(async () => {
 			const reader = eagerlyPoll(
 				conn.read
-					.pipeThrough(bufferMaker())
+					.pipeThrough(bufferTransformer())
 					.pipeThrough(lengthFramer())
 					.pipeThrough(this.decompressor.transform)
 			).getReader();
@@ -99,8 +102,67 @@ export class Connection {
 	}
 
 	// something incoming from eagler
-	async eaglerRead(packet: Uint8Array, epoxyWrite: BytesWriter) {}
+	async eaglerRead(packet: Buffer, epoxyWrite: BytesWriter) { }
 
 	// something incoming from epoxy
-	async epoxyRead(packet: Uint8Array, epoxyWrite: BytesWriter) {}
+	async epoxyRead(packet: Buffer, epoxyWrite: BytesWriter) {
+		const packetId = packet.readVarInt();
+		if (!packetId) throw new Error("packet too small");
+		if (packetId == 0x3f) {
+			const taglen = packet.readVarInt();
+			if (!taglen) throw new Error("packet too small");
+			const tag = new TextDecoder().decode(
+				packet.take(taglen).inner
+			);
+
+			if (tag.startsWith("EAG|")) {
+				return;
+			}
+		}
+		if (this.loggedIn) {
+			if (packetId == 0x46) {
+				const compression = packet.readVarInt();
+				if (!compression) throw new Error("packet too small");
+				this.decompressor.compressionThresh = compression;
+			} else {
+				const buf = Buffer.new();
+				buf.writeVarInt(packetId);
+				buf.extend(packet);
+				await this.processOut.write(buf);
+			}
+		} else if (packetId == 0x03) {
+			const compression = packet.readVarInt();
+			if (!compression) throw new Error("packet too small");
+			this.decompressor.compressionThresh = compression;
+		} else if (packetId == 0x02) {
+			/* TODO write to this.processOut
+			this.dispatchEvent(
+				new MessageEvent("message", {
+					data: Uint8Array.from([packets.PROTOCOL_SERVER_FINISH_LOGIN]),
+				}),
+			);
+			this.loggedIn = true;
+			for (let p of this.eag2wispQueue) {
+				const vi = readVarInt(p);
+				if (this.compression >= 0) {
+					p = Uint8Array.from(
+						await makeCompressedPacket(
+							vi[0],
+							p.slice(vi[1]),
+							this.compression,
+						),
+					);
+				} else {
+					p = Uint8Array.from(makePacket(vi[0], p.slice(vi[1])));
+				}
+				await this.wispStream.send(p);
+			}
+			this.eag2wispQueue = [];
+			*/
+		} else if (packetId == 0x00) {
+			// TODO translate this this.wispStream.close();
+			// this is probably wrong
+			epoxyWrite.close();
+		}
+	}
 }

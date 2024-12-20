@@ -36,11 +36,20 @@ async function decompress(buf: Buffer): Promise<Buffer> {
 	return data;
 }
 
-export function bufferMaker(): TransformStream<Uint8Array, Buffer> {
+export function bufferTransformer(): TransformStream<Uint8Array, Buffer> {
 	return new TransformStream({
 		transform(chunk, controller) {
 			controller.enqueue(new Buffer(chunk));
 		},
+	});
+}
+
+export function bufferWriter(write: WritableStream<Uint8Array>): WritableStream<Buffer> {
+	const writer = write.getWriter();
+	return new WritableStream({
+		async write(thing) {
+			writer.write(thing.inner);
+		}
 	});
 }
 
@@ -93,9 +102,9 @@ export class Decompressor {
 	}
 }
 
-export function eagerlyPoll(
-	stream: ReadableStream<Uint8Array>
-): ReadableStream<Uint8Array> {
+export function eagerlyPoll<T>(
+	stream: ReadableStream<T>
+): ReadableStream<T> {
 	return new ReadableStream({
 		async start(controller) {
 			const reader = stream.getReader();
