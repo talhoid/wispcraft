@@ -1,5 +1,8 @@
 import { Buffer } from "../buffer";
 
+export type BytesReader = ReadableStreamDefaultReader<Buffer>;
+export type BytesWriter = WritableStreamDefaultWriter<Buffer>;
+
 function writeTransform<I, O>(
 	stream: WritableStream<I>,
 	transformer: (val: O) => I,

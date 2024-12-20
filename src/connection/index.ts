@@ -4,12 +4,38 @@ import { Buffer } from "../buffer";
 import {
 	bufferTransformer,
 	bufferWriter,
+	BytesReader,
+	BytesWriter,
 	eagerlyPoll,
 	lengthTransformer,
 } from "./framer";
 
-export type BytesReader = ReadableStreamDefaultReader<Buffer>;
-export type BytesWriter = WritableStreamDefaultWriter<Buffer>;
+function link<T>(): [ReadableStream<T>, WritableStream<T>] {
+	let readController: ReadableStreamDefaultController<T>;
+	let writeController: WritableStreamDefaultController;
+
+	return [
+		new ReadableStream({
+			start(controller) {
+				readController = controller;
+			},
+			cancel() {
+				writeController.error("other side closed");
+			}
+		}),
+		new WritableStream({
+			start(controller) {
+				writeController = controller;
+			},
+			write(obj) {
+				readController.enqueue(obj);
+			},
+			close() {
+				readController.close();
+			}
+		}),
+	];
+}
 
 export class Connection {
 	// used by fake websocket
@@ -26,30 +52,13 @@ export class Connection {
 	impl: EaglerProxy;
 
 	constructor(uri: string) {
-		// TODO handle close lol
-		let inController: ReadableStreamDefaultController<Uint8Array>;
-		this.processIn = new ReadableStream({
-			start(controller) {
-				inController = controller;
-			},
-		}).getReader();
-		this.eaglerIn = new WritableStream({
-			write(chunk) {
-				inController.enqueue(chunk);
-			},
-		}).getWriter();
+		const [processIn, eaglerIn] = link<Buffer>();
+		this.processIn = processIn.getReader();
+		this.eaglerIn = eaglerIn.getWriter();
 
-		let outController: ReadableStreamDefaultController<Uint8Array>;
-		this.eaglerOut = new ReadableStream({
-			start(controller) {
-				outController = controller;
-			},
-		}).getReader();
-		this.processOut = new WritableStream({
-			write(chunk) {
-				outController.enqueue(chunk);
-			},
-		}).getWriter();
+		const [eaglerOut, processOut] = link<Buffer>();
+		this.eaglerOut = eaglerOut.getReader();
+		this.processOut = processOut.getWriter();
 
 		// ayunami code
 		let ipPort = uri.slice(uri.toLowerCase().indexOf("://java://") + 10);

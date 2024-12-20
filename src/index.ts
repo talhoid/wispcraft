@@ -1,6 +1,5 @@
-import { BytesWriter, Connection } from "./connection";
 import { Buffer } from "./buffer";
-import { Decompressor } from "./connection/framer";
+import { BytesWriter, Decompressor } from "./connection/framer";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
