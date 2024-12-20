@@ -1,4 +1,4 @@
-import { client as wisp } from "@mercuryworkshop/wisp-js/client";
+import { WispConnection } from "./lib/wisp.mjs";
 import {
 	makePacket,
 	makeString,
@@ -28,21 +28,21 @@ export class wispWS extends EventTarget {
 			this.ipPort[1] = 25565;
 		}
 		this.ipPort[1] = +this.ipPort[1];
-		const conn = new wisp.ClientConnection(wispurl);
+		const conn = new WispConnection(wispurl);
 		const packetQueue = new AsyncQueue(1);
 		this.clientPacketQueue = new AsyncQueue(1);
-		conn.onopen = async () => {
+		conn.addEventListener("open", async () => {
 			this.wispStream = conn.create_stream(this.ipPort[0], this.ipPort[1]);
-			this.wispStream.onmessage = (data) => {
-				packetQueue.put(data);
-			};
+			this.wispStream.addEventListener("message", (event) => {
+				packetQueue.put(event.data);
+			});
 			let isOpen = true;
-			this.wispStream.onclose = (event) => {
+			this.wispStream.addEventListener("close", (event) => {
 				isOpen = false;
 				packetQueue.close();
 				this.dispatchEvent(new CloseEvent("close", event.code));
 				conn.ws.close();
-			};
+			});
 			this.dispatchEvent(new Event("open"));
 			let partialPacket = [];
 			while (isOpen) {
@@ -159,7 +159,7 @@ export class wispWS extends EventTarget {
 					}
 				})();
 			}
-		};
+		});
 	}
 	close(c) {
 		if (this.wispStream) {
