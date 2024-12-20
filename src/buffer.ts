@@ -10,7 +10,7 @@ export class Buffer {
 	constructor(inner: Uint8Array | number[], copy?: boolean) {
 		if (inner instanceof Uint8Array) {
 			if (copy) {
-				this.inner = inner.slice();
+				this.inner = Uint8Array.of(...inner);
 			} else {
 				this.inner = inner;
 			}
@@ -28,8 +28,16 @@ export class Buffer {
 		return new Buffer(ret);
 	}
 
+	resize(newlen: number) {
+		const arr = new Uint8Array(new ArrayBuffer(newlen));
+		arr.set(this.inner);
+		this.inner = arr;
+	}
+
 	extend(buf: Buffer) {
-		this.inner.set(buf.inner, this.inner.length);
+		const loc = this.inner.length;
+		this.resize(this.inner.length + buf.inner.length);
+		this.inner.set(buf.inner, loc);
 	}
 
 	get(idx: number): number {
@@ -102,7 +110,7 @@ export class Buffer {
 			num >>>= 7;
 		}
 		buffer.push(num);
-		this.extend(new Buffer(Uint8Array.from(buffer)));
+		this.extend(new Buffer(buffer));
 	}
 
 	writeVariableData(data: Buffer) {
@@ -110,3 +118,6 @@ export class Buffer {
 		this.extend(data);
 	}
 }
+
+// @ts-ignore
+window.Buffer = Buffer;
