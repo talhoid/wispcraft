@@ -14,17 +14,22 @@ epoxy().then(() => {
 	epoxyClient = new EpoxyClient(wispurl, options);
 });
 
-createUI()
+const regex = /^wss?:\/\/([a-z0-9_-]+):\/\/(.*)$/i;
 
 window.WebSocket = new Proxy(WebSocket, {
 	construct(target, [uri, protos]) {
-		if (("" + uri).toLowerCase().includes("://java://")) {
-			return new wispWS(uri);
-		} else if (("" + uri).toLowerCase().includes("://internal://settings")) {
-      showUI();
-      return new WebSocket(null);
-		} else {
-			return new nativeWebSocket(uri, protos);
+		const matches = ("" + uri).match(regex);
+		if (matches != null && matches.length > 1) {
+			switch (matches[1].toLowerCase()) {
+				case "java":
+					if (matches.length < 3) break;
+					return new wispWS(matches[2]);
+				case "settings":
+					showUI(matches.length > 2 ? matches[2] : null);
+					uri = protos = null;
+					break;
+			}
 		}
+		return new nativeWebSocket(uri, protos);
 	},
 });

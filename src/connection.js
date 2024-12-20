@@ -17,17 +17,29 @@ export class wispWS extends EventTarget {
 		super();
 		this.binaryType = "blob";
 		this.readyState = "";
-		this.url = uri.slice(uri.indexOf("://") + 3);
+		this.url = "java://" + uri;
 		this.handshook = false;
 		this.loggedIn = false;
 		this.compression = -1;
 		this.eag2wispQueue = [];
 		this.username = "___";
-		this.ipPort = uri.slice(uri.lastIndexOf("/") + 1).split(":", 2);
-		if (this.ipPort.length < 2 || !+this.ipPort[1]) {
-			this.ipPort[1] = 25565;
+		this.ipPort = uri;
+		let ti = this.ipPort.indexOf("/");
+		if (ti != -1) {
+			this.ipPort = this.ipPort.slice(0, i);
 		}
-		this.ipPort[1] = +this.ipPort[1];
+		ti = this.ipPort.lastIndexOf("]");
+		if (ti == -1) {
+			ti = this.ipPort.lastIndexOf(":");
+		} else {
+			ti = this.ipPort.slice(ti).lastIndexOf(":");
+		}
+		if (ti == -1) {
+			this.ipPort += ":25565";
+			ti = this.ipPort.lastIndexOf(":");
+		}
+		ti = this.ipPort.slice(0, ti);
+		this.ipPort = [ti, +this.ipPort.slice(ti.length + 1)];
 		const conn = new WispConnection(wispurl);
 		const packetQueue = new AsyncQueue(1);
 		this.clientPacketQueue = new AsyncQueue(1);
