@@ -5,7 +5,7 @@ import epoxy, {
 	EpoxyClientOptions,
 } from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
 
-export const wispurl = "ws://localhost:6001/";
+export const wispurl = (new URL(window.location.href)).searchParams.get("wisp") || "wss://anura.pro/";
 
 export let epoxyClient;
 epoxy().then(() => {
