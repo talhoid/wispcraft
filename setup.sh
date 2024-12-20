@@ -8,3 +8,4 @@ wget https://git.eaglercraft.rip/eaglercraft/eaglercraft-builds/raw/branch/main/
 unzip EaglercraftX_1.8_WASM-GC_Web.zip
 rm EaglercraftX_1.8_WASM-GC_Web.zip
 sed -i 's/<head>/<head>\<script src="index.js"><\/script>/' index.html
+cp ../_headers _headers
