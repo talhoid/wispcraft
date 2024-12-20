@@ -34,13 +34,15 @@ class WispWS extends EventTarget {
 		})();
 	}
 
-	send(chunk: Uint8Array) {
+	send(chunk: Uint8Array | string) {
 		if (typeof chunk == "string") return;
 		this.inner.eaglerIn.write(new Buffer(chunk));
 	}
 
 	close() {
-		this.inner.eaglerIn.close();
+		try {
+			this.inner.eaglerIn.close();
+		} catch(err) {}
 	}
 }
 

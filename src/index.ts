@@ -36,7 +36,7 @@ export class EaglerProxy {
 
 	// consumes packets from eagler, sends them to the upstream server
 	async eaglerRead(packet: Buffer, epoxyWrite: BytesWriter) {
-		console.log(packet);
+		console.log(packet.toArray(), packet.toStr());
 		switch (this.state) {
 			case State.Handshaking:
 				switch (packet.readVarInt()) {

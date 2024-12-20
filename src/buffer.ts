@@ -1,3 +1,5 @@
+const decoder = new TextDecoder();
+
 export class Buffer {
 	inner: Uint8Array;
 
@@ -28,6 +30,13 @@ export class Buffer {
 
 	get(idx: number): number {
 		return this.inner[idx];
+	}
+
+	toArray(): number[] {
+		return Array.from(this.inner);
+	}
+	toStr(): string {
+		return decoder.decode(this.inner);
 	}
 
 	get length(): number {
