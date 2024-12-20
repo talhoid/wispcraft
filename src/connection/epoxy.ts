@@ -4,7 +4,8 @@ import initEpoxy, {
 	EpoxyClientOptions,
 } from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
 
-export let wisp = (new URLSearchParams(location.search)).get("wisp") || "ws://localhost:5001/";
+export let wisp =
+	new URLSearchParams(location.search).get("wisp") || "ws://localhost:5001/";
 let connectedwisp = "";
 
 let initted = false;

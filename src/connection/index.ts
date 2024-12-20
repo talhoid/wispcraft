@@ -21,7 +21,7 @@ function link<T>(): [ReadableStream<T>, WritableStream<T>] {
 			},
 			cancel() {
 				writeController.error("other side closed");
-			}
+			},
 		}),
 		new WritableStream({
 			start(controller) {
@@ -32,7 +32,7 @@ function link<T>(): [ReadableStream<T>, WritableStream<T>] {
 			},
 			close() {
 				readController.close();
-			}
+			},
 		}),
 	];
 }
@@ -92,7 +92,7 @@ export class Connection {
 				conn.read
 					.pipeThrough(bufferTransformer())
 					.pipeThrough(lengthTransformer())
-					.pipeThrough(this.impl.decompressor.transform),
+					.pipeThrough(this.impl.decompressor.transform)
 			).getReader();
 
 			while (true) {

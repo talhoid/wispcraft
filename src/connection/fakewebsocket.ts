@@ -3,18 +3,7 @@ import { Buffer } from "../buffer";
 
 class WispWS extends EventTarget {
 	inner: Connection;
-
-	binaryType = "arraybuffer";
-	clientPacketQueue = {};
-	compression = -1;
-	eag2wispQueue = {};
-	handshook = false;
-	ipPort = ["a", 123];
-	loggedIn = false;
-	readyState = "";
 	url: string;
-	username = "___";
-	wispStream = {};
 
 	constructor(uri: string) {
 		super();
@@ -28,13 +17,20 @@ class WispWS extends EventTarget {
 			this.dispatchEvent(new Event("open"));
 		});
 		(async () => {
-			while (true) {
-				const { done, value } = await this.inner.eaglerOut.read();
-				if (done || !value) return;
+			try {
+				while (true) {
+					const { done, value } = await this.inner.eaglerOut.read();
+					if (done || !value) break;
 
-				this.dispatchEvent(new MessageEvent("message", { data: value.inner }));
+					this.dispatchEvent(
+						new MessageEvent("message", { data: value.inner })
+					);
+				}
+				this.dispatchEvent(new Event("close"));
+			} catch (err) {
+				console.error(err);
+				this.dispatchEvent(new Event("error"));
 			}
-			// TODO cleanup
 		})();
 	}
 
