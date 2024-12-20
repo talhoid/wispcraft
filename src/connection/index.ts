@@ -1,6 +1,13 @@
 import { connect_tcp } from "../epoxy";
+import { Protocol } from "../packet";
 import { Buffer } from "./buf";
-import { bufferTransformer, bufferWriter, Decompressor, eagerlyPoll, lengthFramer } from "./framer";
+import {
+	bufferTransformer,
+	bufferWriter,
+	Decompressor,
+	eagerlyPoll,
+	lengthFramer,
+} from "./framer";
 
 type BytesReader = ReadableStreamDefaultReader<Buffer>;
 type BytesWriter = WritableStreamDefaultWriter<Buffer>;
@@ -20,6 +27,7 @@ export class Connection {
 	decompressor: Decompressor = new Decompressor();
 
 	loggedIn: boolean = false;
+	handshook: boolean = false;
 
 	constructor(uri: string) {
 		// TODO handle close lol
@@ -102,7 +110,122 @@ export class Connection {
 	}
 
 	// something incoming from eagler
-	async eaglerRead(packet: Buffer, epoxyWrite: BytesWriter) { }
+	async eaglerRead(packet: Buffer, epoxyWrite: BytesWriter) {
+		if (!this.handshook) {
+			switch (packet.get(0)) {
+				case Protocol.ClientVersion:
+					await this.processOut.write(
+						new Buffer([Protocol.ServerVersion, 0, 3, 0, 47, 0, 0, 0, 0, 0])
+					);
+					break;
+				case Protocol.ClientRequestLogin:
+					/* TODO looks cursed not doing this
+					const bytes = p.slice(2, p[1] + 2);
+					this.username = new TextDecoder().decode(Uint8Array.from(bytes));
+					// in line below: need to replace the 16 bytes with OfflinePlayer:(username) UUID in form of 8-byte long MSB, 8-byte long LSB
+					this.dispatchEvent(
+						new MessageEvent("message", {
+							data: Uint8Array.from([
+								packets.PROTOCOL_SERVER_ALLOW_LOGIN,
+								this.username.length,
+								...bytes,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+								0,
+							]),
+						}),
+					);
+					*/
+					break;
+				case Protocol.ClientProfileData:
+					// ignore for now
+					break;
+				case Protocol.ClientFinishLogin:
+					this.handshook = true;
+					/* TODO
+						await this.wispStream.send(
+							Uint8Array.from(
+								makePacket(0x00, [
+									...makeVarInt(47),
+									...makeString(this.ipPort[0]),
+									...makeShort(this.ipPort[1]),
+									...makeVarInt(2),
+								]),
+							),
+						);
+						await this.wispStream.send(
+							Uint8Array.from(makePacket(0x00, [...makeString(this.username)])),
+						);
+					*/
+					break;
+				default:
+			}
+			return;
+		}
+		const vi = packet.readVarInt();
+		if (!vi) throw new Error("packet too small");
+		if (vi == 0x17) {
+			const tag = new TextDecoder().decode(packet.readVariableData().inner);
+			/* TODO what
+			if (tag.startsWith("EAG|")) {
+				if (tag == "EAG|Skins-1.8" || tag == "EAG|Capes-1.8") {
+					const vivivi = readVarInt(p.slice(vivi[1] + vivi[0]));
+					handleSkinCape(
+						tag[4] == "C",
+						conn,
+						p.slice(
+							vivi[1] + vivi[0] + vivivi[1],
+							vivi[1] + vivi[0] + vivivi[1] + vivivi[0],
+						),
+						(resp) => {
+							this.dispatchEvent(
+								new MessageEvent("message", {
+									data: Uint8Array.from([
+										...makeVarInt(0x3f),
+										...makeVarInt(tag.length),
+										...new TextEncoder().encode(tag),
+										...makeVarInt(resp.length),
+										...resp,
+									]),
+								}),
+							);
+						},
+					);
+				}
+				return;
+			}
+			*/
+		}
+		if (this.loggedIn) {
+			/* TODO
+			if (this.decompressor.compressionThresh >= 0) {
+				p = Uint8Array.from(
+					await makeCompressedPacket(vi[0], p.slice(vi[1]), this.compression),
+				);
+			} else {
+				p = Uint8Array.from(makePacket(vi[0], p.slice(vi[1])));
+			}
+			await this.wispStream.send(p);
+			*/
+		} else {
+			/* TODO
+			this.eag2wispQueue.push(p);
+			*/
+		}
+	}
 
 	// something incoming from epoxy
 	async epoxyRead(packet: Buffer, epoxyWrite: BytesWriter) {
@@ -111,9 +234,7 @@ export class Connection {
 		if (packetId == 0x3f) {
 			const taglen = packet.readVarInt();
 			if (!taglen) throw new Error("packet too small");
-			const tag = new TextDecoder().decode(
-				packet.take(taglen).inner
-			);
+			const tag = new TextDecoder().decode(packet.take(taglen).inner);
 
 			if (tag.startsWith("EAG|")) {
 				return;

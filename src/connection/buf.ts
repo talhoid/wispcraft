@@ -5,12 +5,18 @@ export class Buffer {
 		return new Buffer(new Uint8Array());
 	}
 
-	constructor(inner: Uint8Array) {
-		this.inner = inner;
+	constructor(inner: Uint8Array | number[]) {
+		if (inner instanceof Uint8Array) {
+			this.inner = inner;
+		} else {
+			this.inner = Uint8Array.from(inner);
+		}
 	}
 
 	// precious allocations...
 	take(cnt: number): Buffer {
+		if (this.length < cnt) throw new Error("data too small");
+
 		const ret = this.inner.slice(0, cnt);
 		this.inner = ret.slice(cnt);
 		return new Buffer(ret);
@@ -18,6 +24,10 @@ export class Buffer {
 
 	extend(buf: Buffer) {
 		this.inner.set(buf.inner, this.inner.length);
+	}
+
+	get(idx: number): number {
+		return this.inner[idx];
 	}
 
 	get length(): number {
@@ -42,6 +52,12 @@ export class Buffer {
 
 		this.take(index);
 		return result;
+	}
+
+	readVariableData(): Buffer {
+		const len = this.readVarInt();
+		if (!len) throw new Error("data too small");
+		return this.take(len);
 	}
 
 	writeVarInt(num: number) {
