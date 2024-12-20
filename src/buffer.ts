@@ -24,7 +24,7 @@ export class Buffer {
 		if (this.length < cnt) throw new Error("data too small");
 
 		const ret = this.inner.slice(0, cnt);
-		this.inner = ret.slice(cnt);
+		this.inner = this.inner.slice(cnt);
 		return new Buffer(ret);
 	}
 
@@ -116,6 +116,10 @@ export class Buffer {
 	writeVariableData(data: Buffer) {
 		this.writeVarInt(data.length);
 		this.extend(data);
+	}
+
+	writeBytes(data: number[]) {
+		this.extend(new Buffer(data));
 	}
 }
 
