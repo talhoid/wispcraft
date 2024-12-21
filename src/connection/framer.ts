@@ -76,9 +76,10 @@ export function lengthTransformer(): TransformStream<Buffer> {
 			currentPacket.extend(chunk);
 			while (true) {
 				if (currentSize === -1) {
-					const size = currentPacket.readVarInt();
-					if (!size) {
-						// failed to read, don't do anything
+					let size: number;
+					try {
+						size = currentPacket.readVarInt();
+					} catch (err) {
 						break;
 					}
 					currentSize = size;
