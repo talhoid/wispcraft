@@ -98,13 +98,18 @@ export function lengthTransformer(): TransformStream<Buffer> {
 }
 
 export class Decompressor {
-	compressionThresh: number = 0;
+	compressionThresh: number = -1;
 	transform: TransformStream<Buffer>;
 
 	constructor() {
 		const self = this;
 		this.transform = new TransformStream({
 			async transform(chunk, controller) {
+				if (self.compressionThresh === -1) {
+					controller.enqueue(chunk);
+					return;
+				}
+
 				const len = chunk.readVarInt();
 
 				if (!len) throw new Error("Decompressor: packet was too small");

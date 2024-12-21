@@ -80,8 +80,8 @@ export class Connection {
 			const reader = eagerlyPoll<Buffer>(
 				conn.read
 					.pipeThrough(bufferTransformer())
-					.pipeThrough(lengthTransformer()),
-				// .pipeThrough(impl.decompressor.transform),
+					.pipeThrough(lengthTransformer())
+					.pipeThrough(impl.decompressor.transform),
 			).getReader();
 
 			while (true) {

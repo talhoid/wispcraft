@@ -160,7 +160,9 @@ export class EaglerProxy {
 						eag.transmit(this.eagler);
 						break;
 					case Clientbound.SetCompression:
-						let threshold = packet.readVarInt();
+						let threshold = packet.readVarInt()!;
+						console.error("Set compression threshold: " + threshold);
+						this.decompressor.compressionThresh = threshold;
 						// TODO set decompressor/compressor threshold
 						break;
 				}
