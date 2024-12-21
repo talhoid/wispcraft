@@ -45,7 +45,7 @@ enum Clientbound {
 	SetCompression = 0x03,
 	/* ==PLAY== */
 	SetCompressionPlay = 0x46,
-	PluginMessage = 0x3F,
+	PluginMessage = 0x3f,
 }
 
 const MINECRAFT_PROTOCOL_VERSION = 47;
@@ -70,6 +70,52 @@ const fakever = new Packet(Clientbound.EAG_ServerVersion);
 	fakever.writeBytes([brand.length]);
 	fakever.extend(new Buffer(brand));
 	fakever.writeBytes([0, 0, 0]);
+}
+
+type ChatSchema = {
+	text: string;
+	color?: string;
+	underlined?: boolean;
+	strikethrough?: boolean;
+	obfuscated?: boolean;
+	bold?: boolean;
+	italic?: boolean;
+	extra?: ChatSchema[];
+};
+
+const colorMap: { [key: string]: string } = {
+	black: "0",
+	dark_blue: "1",
+	dark_green: "2",
+	dark_aqua: "3",
+	dark_red: "4",
+	dark_purple: "5",
+	gold: "6",
+	gray: "7",
+	dark_gray: "8",
+	blue: "9",
+	green: "a",
+	aqua: "b",
+	red: "c",
+	light_purple: "d",
+	yellow: "e",
+	white: "f",
+};
+function chatToLegacyString(chat: ChatSchema) {
+	let special = "§";
+	let str = "";
+	if (chat.color) str += special + colorMap[chat.color];
+	if (chat.bold) str += special + "l";
+	if (chat.italic) str += special + "o";
+	if (chat.underlined) str += special + "n";
+
+	str += chat.text;
+	if (chat.extra) {
+		for (let i = 0; i < chat.extra.length; i++) {
+			str += chatToLegacyString(chat.extra[i]);
+		}
+	}
+	return str;
 }
 
 export class EaglerProxy {
@@ -203,7 +249,9 @@ export class EaglerProxy {
 						if (body.description)
 							if (typeof body.description == "string")
 								response.data.motd = [body.description];
-							else response.data.motd = [body.description.text];
+							else if (body.description.extra) {
+								response.data.motd = [chatToLegacyString(body.description)];
+							} else response.data.motd = [body.description.text];
 
 						if (body.favicon) {
 							response.data.icon = true;
