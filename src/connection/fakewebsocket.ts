@@ -41,7 +41,7 @@ class WispWS extends EventTarget {
 		let buf: Buffer;
 		if (typeof chunk == "string") {
 			if (chunk.toLowerCase() == "accept: motd") {
-				this.inner.impl?.ping();
+				this.inner.ping();
 			} else {
 				console.warn("IGNORING CHUNK", chunk);
 			}

@@ -124,6 +124,7 @@ export class EaglerProxy {
 				}
 				break;
 			case State.Status:
+				// eagler does not send status packets
 				break;
 			case State.Login:
 			case State.Play:
@@ -143,7 +144,22 @@ export class EaglerProxy {
 		const pk = packet.readVarInt();
 		switch (this.state) {
 			case State.Handshaking:
+				// there are no clientbound packets in the handshaking state
+				break;
 			case State.Status:
+				switch (pk) {
+					case Clientbound.StatusResponse:
+						let json = packet.readString();
+						console.log("Status response: " + json);
+						// this.eagler.write(json);
+						break;
+					case Clientbound.PongResponse:
+						let time = packet.readLong();
+						console.log("Pong response: " + time);
+						break;
+					default:
+						console.error("Unhandled status packet: " + pk);
+				}
 				break;
 			case State.Login:
 				console.log("Login packet: " + pk);
@@ -200,6 +216,8 @@ export class EaglerProxy {
 		let pingRequest = new Packet(Serverbound.PingRequest);
 		pingRequest.writeLong(Date.now());
 		this.net.write(pingRequest);
+
+		this.state = State.Status;
 
 		this.eagler.write(`{
     "name": "Asspixel",
