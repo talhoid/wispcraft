@@ -1,5 +1,6 @@
 import { Connection } from ".";
 import { Buffer } from "../buffer";
+import { showUI } from "../ui";
 
 class WispWS extends EventTarget {
 	inner: Connection;
@@ -59,11 +60,17 @@ export function makeFakeWebSocket(): typeof WebSocket {
 	return new Proxy(WebSocket, {
 		construct(_target, [uri, protos]) {
 			let url = new URL(uri);
+			console.log(url)
 			if (url.host == "java") {
 				const ws = new WispWS(uri);
 				ws.start();
 				return ws;
-			} else {
+			} else if (url.host == "settings") {
+				showUI(null);
+				console.log("settings ui?")
+				return new WebSocket("ws://127.0.0.1:1");
+			}
+			else {
 				return new NativeWebSocket(uri, protos);
 			}
 		},
