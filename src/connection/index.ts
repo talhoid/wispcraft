@@ -8,6 +8,7 @@ import {
 	BytesWriter,
 	eagerlyPoll,
 	lengthTransformer,
+	writeTransform,
 } from "./framer";
 
 function link<T>(): [ReadableStream<T>, WritableStream<T>] {
@@ -66,11 +67,17 @@ export class Connection {
 	async forward(connectcallback: () => void) {
 		const conn = await connect_tcp(this.url.host);
 		connectcallback();
-		const writer = bufferWriter(conn.write).getWriter();
+		const writer = bufferWriter(conn.write);
 
 		const impl = new EaglerProxy(
 			this.processOut,
-			writer,
+			writeTransform(writer, async (p: Buffer) => {
+				const pk = await impl.compressor.transform(p);
+				let b = Buffer.new();
+				b.writeVarInt(pk.length);
+				b.extend(pk);
+				return b;
+			}).getWriter(),
 			this.url.hostname,
 			this.url.port ? parseInt(this.url.port) : 25565,
 		);

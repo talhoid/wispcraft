@@ -3,14 +3,14 @@ import { Buffer } from "../buffer";
 export type BytesReader = ReadableStreamDefaultReader<Buffer>;
 export type BytesWriter = WritableStreamDefaultWriter<Buffer>;
 
-function writeTransform<I, O>(
+export function writeTransform<I, O>(
 	stream: WritableStream<I>,
-	transformer: (val: O) => I,
+	transformer: (val: O) => I | Promise<I>,
 ): WritableStream<O> {
 	const writer = stream.getWriter();
 	return new WritableStream({
-		write(val, _) {
-			writer.write(transformer(val));
+		async write(val, _) {
+			writer.write(await transformer(val));
 		},
 		close() {
 			writer.close();
@@ -21,7 +21,9 @@ function writeTransform<I, O>(
 async function compress(buf: Buffer): Promise<Buffer> {
 	const compressor = new CompressionStream("deflate");
 
-	compressor.writable.getWriter().write(buf.inner);
+	const writer = compressor.writable.getWriter();
+	writer.write(buf.inner);
+	writer.close();
 
 	const data = Buffer.new();
 
@@ -39,7 +41,9 @@ async function compress(buf: Buffer): Promise<Buffer> {
 async function decompress(buf: Buffer): Promise<Buffer> {
 	const compressor = new DecompressionStream("deflate");
 
-	compressor.writable.getWriter().write(buf.inner);
+	let writer = compressor.writable.getWriter();
+	writer.write(buf.inner);
+	writer.close();
 
 	const data = Buffer.new();
 
@@ -113,10 +117,10 @@ export class Decompressor {
 
 				const len = chunk.readVarInt();
 
-				if (len == 0) {
-					controller.enqueue(chunk);
-				} else if (len >= self.compressionThresh) {
+				if (len >= self.compressionThresh) {
 					controller.enqueue(await decompress(chunk));
+				} else if (len == 0) {
+					controller.enqueue(chunk);
 				} else {
 					throw new Error(
 						"Decompressor: server sent compressed packet below threshold",
@@ -129,32 +133,25 @@ export class Decompressor {
 
 export class Compressor {
 	compressionThresh: number = -1;
-	transform: TransformStream<Buffer>;
 
-	constructor() {
-		const self = this;
-		this.transform = new TransformStream({
-			async transform(chunk, controller) {
-				if (self.compressionThresh === -1) {
-					controller.enqueue(chunk);
-					return;
-				}
+	async transform(chunk: Buffer): Promise<Buffer> {
+		if (this.compressionThresh === -1) {
+			return chunk;
+		}
 
-				// TODO: avoid the copies here
-				if (chunk.length < self.compressionThresh) {
-					const packet = Buffer.new();
-					packet.writeVarInt(0);
-					packet.extend(chunk);
-					controller.enqueue(packet);
-				} else {
-					const compressed = await compress(chunk);
-					const packet = Buffer.new();
-					packet.writeVarInt(compressed.length);
-					packet.extend(compressed);
-					controller.enqueue(packet);
-				}
-			},
-		});
+		const packet = Buffer.new();
+		// TODO: avoid the copies here
+		if (chunk.length < this.compressionThresh) {
+			packet.writeVarInt(0);
+			packet.extend(chunk);
+		} else {
+			const compressed = await compress(chunk);
+			const packet = Buffer.new();
+			packet.writeVarInt(compressed.length);
+			packet.extend(compressed);
+		}
+
+		return packet;
 	}
 }
 

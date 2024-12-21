@@ -1,5 +1,5 @@
 import { Buffer } from "./buffer";
-import { BytesWriter, Decompressor } from "./connection/framer";
+import { BytesWriter, Compressor, Decompressor } from "./connection/framer";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
@@ -45,15 +45,6 @@ class Packet extends Buffer {
 		super(new Uint8Array());
 		this.writeVarInt(packetType);
 	}
-
-	transmit(writer: BytesWriter, sendlength = false) {
-		if (sendlength) {
-			let buffer = new Buffer(new Uint8Array());
-			buffer.writeVarInt(this.inner.length);
-			writer.write(buffer);
-		}
-		writer.write(this);
-	}
 }
 
 const serverboundNonstandard = [
@@ -65,6 +56,7 @@ export class EaglerProxy {
 	loggedIn: boolean = false;
 	handshook: boolean = false;
 	decompressor = new Decompressor();
+	compressor = new Compressor();
 
 	state: State = State.Handshaking;
 
@@ -94,7 +86,7 @@ export class EaglerProxy {
 						// eagler specific packet, return a fake version number
 						let fakever = new Packet(Clientbound.EAG_ServerVersion);
 						fakever.writeBytes([0, 3, 0, 47, 0, 0, 0, 0, 0]); // idk what these mean ayun fill this in
-						fakever.transmit(this.eagler);
+						this.eagler.write(fakever);
 						return;
 					case Serverbound.EAG_RequestLogin:
 						let username = packet.readString();
@@ -106,7 +98,7 @@ export class EaglerProxy {
 						fakelogin.writeBytes([
 							0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 						]);
-						fakelogin.transmit(this.eagler);
+						this.eagler.write(fakelogin);
 						return;
 					case Serverbound.EAG_FinishLogin:
 						// this says finish login but it only finishes the handshake stage since eagler
@@ -116,11 +108,11 @@ export class EaglerProxy {
 						handshake.writeString(this.serverAddress);
 						handshake.writeUShort(this.serverPort);
 						handshake.writeVarInt(State.Login);
-						handshake.transmit(this.net, true);
+						this.net.write(handshake);
 
 						let loginstart = new Packet(Serverbound.LoginStart);
 						loginstart.writeString(this.username);
-						loginstart.transmit(this.net, true);
+						this.net.write(loginstart);
 
 						this.state = State.Login;
 						break;
@@ -135,7 +127,7 @@ export class EaglerProxy {
 					default:
 						let p = new Packet(pk);
 						p.extend(packet);
-						p.transmit(this.net, true);
+						this.net.write(p);
 						break;
 				}
 		}
@@ -143,32 +135,36 @@ export class EaglerProxy {
 
 	// consumes packets from the network, sends them to eagler
 	async epoxyRead(packet: Buffer) {
+		const pk = packet.readVarInt();
 		switch (this.state) {
 			case State.Handshaking:
 			case State.Status:
 				break;
 			case State.Login:
-				switch (packet.readVarInt()) {
+				console.log("Login packet: " + pk);
+				switch (pk) {
 					case Clientbound.Disconnect:
 						console.error("Disconnect during login: " + packet.readString());
 						// TODO forward to eagler
 						break;
 					case Clientbound.LoginSuccess:
+						console.log("Login success");
 						this.realUuid = packet.readString();
 						this.state = State.Play;
 						let eag = new Packet(Clientbound.EAG_FinishLogin);
-						eag.transmit(this.eagler);
+						this.eagler.write(eag);
 						break;
 					case Clientbound.SetCompression:
 						let threshold = packet.readVarInt()!;
 						console.error("Set compression threshold: " + threshold);
 						this.decompressor.compressionThresh = threshold;
-						// TODO set decompressor/compressor threshold
+						this.compressor.compressionThresh = threshold;
 						break;
+					default:
+						console.error("Unhandled login packet: " + pk);
 				}
 				break;
 			case State.Play:
-				const pk = packet.readVarInt()!;
 				switch (pk) {
 					case Clientbound.SetCompressionPlay:
 						let threshold = packet.readVarInt();
@@ -178,7 +174,7 @@ export class EaglerProxy {
 						// send rest of packet to eagler
 						let eag = new Packet(pk);
 						eag.extend(packet);
-						eag.transmit(this.eagler);
+						this.eagler.write(eag);
 				}
 		}
 	}
