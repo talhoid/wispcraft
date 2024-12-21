@@ -89,6 +89,7 @@ export class Connection {
 					.pipeThrough(bufferTransformer())
 					.pipeThrough(lengthTransformer())
 					.pipeThrough(impl.decompressor.transform),
+				100
 			).getReader();
 
 			while (true) {

@@ -154,7 +154,7 @@ export class Compressor {
 	}
 }
 
-export function eagerlyPoll<T>(stream: ReadableStream<T>): ReadableStream<T> {
+export function eagerlyPoll<T>(stream: ReadableStream<T>, buffer: number): ReadableStream<T> {
 	return new ReadableStream({
 		async start(controller) {
 			const reader = stream.getReader();
@@ -165,7 +165,7 @@ export function eagerlyPoll<T>(stream: ReadableStream<T>): ReadableStream<T> {
 			}
 			controller.close();
 		},
-	});
+	}, new CountQueuingStrategy({ highWaterMark: buffer }));
 }
 
 // @ts-ignore
