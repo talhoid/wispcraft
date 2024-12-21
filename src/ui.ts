@@ -17,7 +17,7 @@ export function createUI() {
 
             .settings-ui {
                 width: 60vw;
-                height: 40vw;
+                height: 60vh;
                 position: fixed;
                 z-index: 20;
 
