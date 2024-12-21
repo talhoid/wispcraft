@@ -158,14 +158,17 @@ export class EaglerProxy {
 				}
 				break;
 			case State.Play:
-				switch (packet.readVarInt()) {
+				const pk = packet.readVarInt()!;
+				switch (pk) {
 					case Clientbound.SetCompressionPlay:
 						let threshold = packet.readVarInt();
 						// TODO set decompressor/compressor threshold
 						break;
 					default:
 						// send rest of packet to eagler
-						this.eagler.write(packet);
+						let eag = new Packet(pk);
+						eag.extend(packet);
+						eag.transmit(this.eagler);
 				}
 		}
 	}

@@ -73,7 +73,6 @@ export function lengthTransformer(): TransformStream<Buffer> {
 	let currentSize = -1;
 	return new TransformStream({
 		transform(chunk, controller) {
-			console.log("GOT CHUNK", chunk.toArray(), currentPacket.toArray());
 			currentPacket.extend(chunk);
 			while (true) {
 				if (currentSize === -1) {
@@ -91,7 +90,6 @@ export function lengthTransformer(): TransformStream<Buffer> {
 				}
 
 				const pkt = currentPacket.take(currentSize);
-				console.log("SENDING PACKET", pkt.toArray());
 				controller.enqueue(pkt);
 				currentSize = -1;
 			}
