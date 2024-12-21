@@ -119,9 +119,22 @@ async function mcAuth(xstsToken: string, xstsHash: string): Promise<string> {
 	return token;
 }
 
-async function checkOwnership(mcToken: string): Promise<boolean> {
-	// TODO (get `https://api.minecraftservices.com/entitlements/mcstore` with bearer auth)
-	return true;
+export async function checkOwnership(mcToken: string): Promise<boolean> {
+	const res = await fetch(
+		"https://api.minecraftservices.com/entitlements/mcstore",
+		{
+			headers: {
+				Authorization: `Bearer ${mcToken}`,
+			},
+		}
+	);
+	const json = await res.json();
+	return (
+		json.items?.some(
+			(item: { name: string }) =>
+				item.name === "product_minecraft" || item.name === "game_minecraft"
+		) ?? false
+	);
 }
 
 export async function getProfile(mcToken: string): Promise<UserInfo> {
