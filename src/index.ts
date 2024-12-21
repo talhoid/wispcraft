@@ -59,6 +59,16 @@ const serverboundNonstandard = [
 	Serverbound.EAG_RequestLogin,
 ];
 
+const fakever = new Packet(Clientbound.EAG_ServerVersion);
+{
+	const brand = new TextEncoder().encode("Wispcraft");
+	fakever.writeBytes([0, 3, 0, MINECRAFT_PROTOCOL_VERSION, brand.length]);
+	fakever.extend(new Buffer(brand));
+	fakever.writeBytes([brand.length]);
+	fakever.extend(new Buffer(brand));
+	fakever.writeBytes([0, 0, 0]);
+}
+
 export class EaglerProxy {
 	loggedIn: boolean = false;
 	handshook: boolean = false;
@@ -90,9 +100,7 @@ export class EaglerProxy {
 				switch (packet.readVarInt()) {
 					case Serverbound.EAG_ClientVersion:
 						console.log("Client version request");
-						// eagler specific packet, return a fake version number
-						let fakever = new Packet(Clientbound.EAG_ServerVersion);
-						fakever.writeBytes([0, 3, 0, 47, 0, 0, 0, 0, 0]); // idk what these mean ayun fill this in
+						// eagler specific packet, return server version 3
 						this.eagler.write(fakever);
 						return;
 					case Serverbound.EAG_RequestLogin:
@@ -101,7 +109,9 @@ export class EaglerProxy {
 						this.username = username;
 
 						let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
-						fakelogin.writeString(username);
+						let usernameEnc = new TextEncoder().encode(username);
+						fakelogin.writeBytes([usernameEnc.length]);
+						fakelogin.extend(new Buffer(usernameEnc));
 						fakelogin.writeBytes(offlineUUID(username));
 						this.eagler.write(fakelogin);
 						return;

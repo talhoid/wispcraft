@@ -228,7 +228,7 @@ export function createUI() {
             <div class="header">
                 <div class="side">
                     <img src="https://avatars.githubusercontent.com/u/116328501">
-                    <h1>WispCraft</h1>
+                    <h1>Wispcraft</h1>
                 </div>
 
                 <div class="side" style="padding-right:1rem;color:rgba(248,250,252,0.8);">
