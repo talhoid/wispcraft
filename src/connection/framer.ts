@@ -63,30 +63,28 @@ export function bufferTransformer(): TransformStream<Uint8Array, Buffer> {
 }
 
 export function bufferWriter(
-	write: WritableStream<Uint8Array>
+	write: WritableStream<Uint8Array>,
 ): WritableStream<Buffer> {
 	return writeTransform(write, (x) => x.inner);
 }
 
 export function lengthTransformer(): TransformStream<Buffer> {
 	let currentPacket = Buffer.new();
+	let currentSize = -1;
 	return new TransformStream({
 		transform(chunk, controller) {
-			while (true) {
-				currentPacket.extend(chunk);
-				const size = currentPacket.readVarInt();
-				if (!size) {
-					// failed to read, don't do anything
-					break;
-				}
-
-				if (currentPacket.length < size) {
-					// too small, don't do anything
-					break;
-				}
-
-				controller.enqueue(currentPacket.take(size));
+			currentPacket.extend(chunk);
+			if (currentSize === -1) {
+				currentSize = currentPacket.readVarInt()!;
 			}
+
+			if (currentPacket.length < currentSize) {
+				// too small, don't do anything
+				return;
+			}
+
+			controller.enqueue(currentPacket);
+			currentPacket = new Buffer(new Uint8Array());
 		},
 	});
 }
@@ -109,7 +107,7 @@ export class Decompressor {
 					controller.enqueue(await decompress(chunk));
 				} else {
 					throw new Error(
-						"Decompressor: server sent compressed packet below threshold"
+						"Decompressor: server sent compressed packet below threshold",
 					);
 				}
 			},

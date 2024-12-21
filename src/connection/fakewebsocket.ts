@@ -42,7 +42,7 @@ class WispWS extends EventTarget {
 		} else if (chunk instanceof ArrayBuffer) {
 			buf = new Buffer(new Uint8Array(chunk), true);
 		} else {
-			buf = new Buffer(chunk);
+			buf = new Buffer(chunk, true);
 		}
 		this.inner.eaglerIn.write(buf);
 	}
