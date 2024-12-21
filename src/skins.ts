@@ -8,92 +8,112 @@ let fetchMode = 0;
 let fetchMode2 = 0;
 
 interface TexUrls {
-    skin: string,
-    cape: string,
-    slim: boolean
+	skin: string;
+	cape: string;
+	slim: boolean;
 }
 
 interface Tex {
-    skin: Buffer,
-    cape: Buffer,
-    slim: boolean
+	skin: Buffer;
+	cape: Buffer;
+	slim: boolean;
 }
 
-async function getTextureDataByProfileResponse(resp: Response): Promise<TexUrls> {
-    const response = await resp.json();
-    const parsed = JSON.parse(atob(response.properties[0].value));
-    return {
-        skin: parsed.textures.SKIN.url,
-        cape: parsed.textures.CAPE?.url,
-        slim: parsed.metadata?.model == "slim"
-    };
+async function getTextureDataByProfileResponse(
+	resp: Response
+): Promise<TexUrls> {
+	const response = await resp.json();
+	const parsed = JSON.parse(atob(response.properties[0].value));
+	return {
+		skin: parsed.textures.SKIN.url,
+		cape: parsed.textures.CAPE?.url,
+		slim: parsed.metadata?.model == "slim",
+	};
 }
 
-async function funkyFetch(uuid: string, fallbackUrl: string, isCape: boolean): Promise<Response> {
-    if (!uuid || fetchMode2 == 2) {
-        try {
-            return await fetch(fallbackUrl);
-        } catch (e) {
-            return new Response();
-        }
-    } else if (fetchMode2 == 1) {
-        try {
-            return fetch("https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid);
-        } catch (e) {
-            fetchMode2 = 1;
-            return await funkyFetch(uuid, fallbackUrl, isCape);
-        }
-    }
-    try {
-        return window.fetch("https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid);
-    } catch (e) {
-        fetchMode2 = 1;
-        return await funkyFetch(uuid, fallbackUrl, isCape);
-    }
+async function funkyFetch(
+	uuid: string,
+	fallbackUrl: string,
+	isCape: boolean
+): Promise<Response> {
+	if (!uuid || fetchMode2 == 2) {
+		try {
+			return await fetch(fallbackUrl);
+		} catch (e) {
+			return new Response();
+		}
+	} else if (fetchMode2 == 1) {
+		try {
+			return fetch(
+				"https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid
+			);
+		} catch (e) {
+			fetchMode2 = 1;
+			return await funkyFetch(uuid, fallbackUrl, isCape);
+		}
+	}
+	try {
+		return window.fetch(
+			"https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid
+		);
+	} catch (e) {
+		fetchMode2 = 1;
+		return await funkyFetch(uuid, fallbackUrl, isCape);
+	}
 }
 
 async function funnyFetch(url: string): Promise<Tex> {
-    let cape = "";
-    let slim = false;
-    let uuid = "";
-    try {
-        if (url.startsWith("profile://")) {
-            uuid = url.slice(10);
-            const prefix = fetchMode == 2 ? "https://sessionserver.mojang.com/session/minecraft/profile/" : "https://crafthead.net/profile/";
-            let fat;
-            if (fetchMode == 0) {
-                fat = await window.fetch(prefix + uuid);
-            } else {
-                fat = await fetch(prefix + uuid);
-            }
-            const texData = await getTextureDataByProfileResponse(fat);
-            url = texData.skin;
-            cape = texData.cape;
-            slim = texData.slim;
-        }
-        return {
-            skin: await responseToSkin(await funkyFetch(uuid, url, false)),
-            cape: cape ? await responseToCape(await funkyFetch(uuid, cape, true)) : Buffer.new(),
-            slim
-        };
-    } catch (e) {
-        if (fetchMode == 2) {
-            return {
-                skin: Buffer.new(),
-                cape: Buffer.new(),
-                slim: false
-            };
-        }
-        fetchMode++;
-        return await funnyFetch(url);
-    }
+	let cape = "";
+	let slim = false;
+	let uuid = "";
+	try {
+		if (url.startsWith("profile://")) {
+			uuid = url.slice(10);
+			const prefix =
+				fetchMode == 2
+					? "https://sessionserver.mojang.com/session/minecraft/profile/"
+					: "https://crafthead.net/profile/";
+			let fat;
+			if (fetchMode == 0) {
+				fat = await window.fetch(prefix + uuid);
+			} else {
+				fat = await fetch(prefix + uuid);
+			}
+			const texData = await getTextureDataByProfileResponse(fat);
+			url = texData.skin;
+			cape = texData.cape;
+			slim = texData.slim;
+		}
+		return {
+			skin: await responseToSkin(await funkyFetch(uuid, url, false)),
+			cape: cape
+				? await responseToCape(await funkyFetch(uuid, cape, true))
+				: Buffer.new(),
+			slim,
+		};
+	} catch (e) {
+		if (fetchMode == 2) {
+			return {
+				skin: Buffer.new(),
+				cape: Buffer.new(),
+				slim: false,
+			};
+		}
+		fetchMode++;
+		return await funnyFetch(url);
+	}
 }
 
 function makeImageData(width: number, height: number): ImageData {
 	const canvas = document.createElement("canvas");
 	canvas.width = width;
 	canvas.height = height;
-	return (canvas.getContext("2d") as CanvasRenderingContext2D).getImageData(0, 0, width, height);
+	return (canvas.getContext("2d") as CanvasRenderingContext2D).getImageData(
+		0,
+		0,
+		width,
+		height
+	);
 }
 
 async function blobToImageData(blob: Blob): Promise<ImageData> {
@@ -332,98 +352,103 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 }
 
 async function responseToSkin(response: Response): Promise<Buffer> {
-    return new Buffer(await toEaglerSkin(await response.blob()));
+	return new Buffer(await toEaglerSkin(await response.blob()));
 }
 
 async function toEaglerCape(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
-    const skinOut = new Uint8Array(1173);
+	const skinOut = new Uint8Array(1173);
 	const skinIn = (await blobToImageData(blob)).data;
-    let i, j;
-    for(let y = 0; y < 17; ++y) {
-        for(let x = 0; x < 22; ++x) {
-            i = ((y * 32 + x) << 2);
-            j = ((y * 23 + x) * 3);
-            skinOut[j] = skinIn[i + 1];
-            skinOut[j + 1] = skinIn[i + 2];
-            skinOut[j + 2] = skinIn[i + 3];
-        }
-    }
-    for(let y = 0; y < 11; ++y) {
-        i = (((y + 11) * 32 + 22) << 2);
-        j = (((y + 6) * 23 + 22) * 3);
-        skinOut[j] = skinIn[i + 1];
-        skinOut[j + 1] = skinIn[i + 2];
-        skinOut[j + 2] = skinIn[i + 3];
-    }
-    return skinOut;
+	let i, j;
+	for (let y = 0; y < 17; ++y) {
+		for (let x = 0; x < 22; ++x) {
+			i = (y * 32 + x) << 2;
+			j = (y * 23 + x) * 3;
+			skinOut[j] = skinIn[i + 1];
+			skinOut[j + 1] = skinIn[i + 2];
+			skinOut[j + 2] = skinIn[i + 3];
+		}
+	}
+	for (let y = 0; y < 11; ++y) {
+		i = ((y + 11) * 32 + 22) << 2;
+		j = ((y + 6) * 23 + 22) * 3;
+		skinOut[j] = skinIn[i + 1];
+		skinOut[j + 1] = skinIn[i + 2];
+		skinOut[j + 2] = skinIn[i + 3];
+	}
+	return skinOut;
 }
 
 async function responseToCape(response: Response): Promise<Buffer> {
-    return new Buffer(await toEaglerCape(await response.blob()));
+	return new Buffer(await toEaglerCape(await response.blob()));
 }
 
 async function lookUpInCache(url: string): Promise<Tex> {
-    const value = urlCache[url];
-    if (!value) {
-        const v = await funnyFetch(url);
-        if (v.skin.length == 0) {
-            return v;
-        }
-        urlCache[url] = v;
-    }
-    return urlCache[url];
+	const value = urlCache[url];
+	if (!value) {
+		const v = await funnyFetch(url);
+		if (v.skin.length == 0) {
+			return v;
+		}
+		urlCache[url] = v;
+	}
+	return urlCache[url];
 }
 
-export async function handleSkinCape(isCapeNotSkin: boolean, packet: Buffer): Promise<Buffer> {
-    const id = packet.take(1).get(0);
-    if (!isCapeNotSkin) {
-        if (id == 0x03) {
-            const part = packet.take(16);
-            const uuid = bytesToUuid(part.toArray());
-            const out = await lookUpInCache("profile://" + uuid);
-            const slim = out.slim;
-            const skinData = out.skin;
-            if (skinData.length == 0) {
-                return Buffer.new();
-            }
-            const res = Buffer.new();
-            res.writeBytes([0x05]);
-            res.extend(part);
-            res.writeBytes([slim ? 1 : 0]);
-            res.extend(skinData);
-            return res;
-        } else if (id == 0x06) {
-            const part = packet.take(16);
-            const fard = packet.take(2);
-            const url = new TextDecoder().decode(packet.take((fard.get(0) << 8) | fard.get(1)).inner);
-            if (new URL(url).hostname != "textures.minecraft.net") {
-                return Buffer.new();
-            }
-            const out = await lookUpInCache(url);
-            const slim = false;
-            const skinData = out.skin;
-            if (skinData.length == 0) {
-                return Buffer.new();
-            }
-            const res = Buffer.new();
-            res.writeBytes([0x05]);
-            res.extend(part);
-            res.writeBytes([slim ? 1 : 0]);
-            res.extend(skinData);
-            return res;
-        }
-    } else if (id == 0x03) {
-        const part = packet.take(16);
-        const uuid = bytesToUuid(part.toArray());
-        const capeData = (await lookUpInCache("profile://" + uuid)).cape;
-        if (capeData.length == 0) {
-            return Buffer.new();
-        }
-        const res = Buffer.new();
-        res.writeBytes([0x05]);
-        res.extend(part);
-        res.extend(capeData);
-        return res;
-    }
-    return Buffer.new();
+export async function handleSkinCape(
+	isCapeNotSkin: boolean,
+	packet: Buffer
+): Promise<Buffer> {
+	const id = packet.take(1).get(0);
+	if (!isCapeNotSkin) {
+		if (id == 0x03) {
+			const part = packet.take(16);
+			const uuid = bytesToUuid(part.toArray());
+			const out = await lookUpInCache("profile://" + uuid);
+			const slim = out.slim;
+			const skinData = out.skin;
+			if (skinData.length == 0) {
+				return Buffer.new();
+			}
+			const res = Buffer.new();
+			res.writeBytes([0x05]);
+			res.extend(part);
+			res.writeBytes([slim ? 1 : 0]);
+			res.extend(skinData);
+			return res;
+		} else if (id == 0x06) {
+			const part = packet.take(16);
+			const fard = packet.take(2);
+			const url = new TextDecoder().decode(
+				packet.take((fard.get(0) << 8) | fard.get(1)).inner
+			);
+			if (new URL(url).hostname != "textures.minecraft.net") {
+				return Buffer.new();
+			}
+			const out = await lookUpInCache(url);
+			const slim = false;
+			const skinData = out.skin;
+			if (skinData.length == 0) {
+				return Buffer.new();
+			}
+			const res = Buffer.new();
+			res.writeBytes([0x05]);
+			res.extend(part);
+			res.writeBytes([slim ? 1 : 0]);
+			res.extend(skinData);
+			return res;
+		}
+	} else if (id == 0x03) {
+		const part = packet.take(16);
+		const uuid = bytesToUuid(part.toArray());
+		const capeData = (await lookUpInCache("profile://" + uuid)).cape;
+		if (capeData.length == 0) {
+			return Buffer.new();
+		}
+		const res = Buffer.new();
+		res.writeBytes([0x05]);
+		res.extend(part);
+		res.extend(capeData);
+		return res;
+	}
+	return Buffer.new();
 }

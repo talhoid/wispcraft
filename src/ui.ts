@@ -110,7 +110,7 @@ export function createUI() {
             .hidden {
                 display: none;
             }
-            
+
             .hidden2 {
             display: none;
             }
@@ -151,7 +151,7 @@ export function createUI() {
                 height: 18px;
                 width: 18px;
                 background-color: #1E293B;
-                border: 1px solid #1E293B; 
+                border: 1px solid #1E293B;
                 border-radius: 4px;
                 transition: all 0.2s ease;
             }
@@ -244,9 +244,9 @@ export function createUI() {
             <div class="content shown"  id="settings">
                 <div class="setting">
                     <p>Wisp Server</p>
-                    <input class="input" placeholder="wss://anura.pro/" />
+                    <input class="input" id="wisp_url" placeholder="wss://anura.pro/" />
                 </div>
-                <button class="button">Save</button>
+                <button class="button" id="save_button">Save</button>
             </div>
 
             <div class="content hidden" id="auth">
@@ -276,6 +276,20 @@ export function createUI() {
 		"#settings_tab"
 	) as HTMLSpanElement;
 	const authTab = document.querySelector("#auth_tab") as HTMLSpanElement;
+
+	const wispInput = document.querySelector("#wisp_url") as HTMLInputElement;
+	const saveButton = document.querySelector(
+		"#save_button"
+	) as HTMLButtonElement;
+
+	if (localStorage.getItem("wispcraft_wispurl") !== null) {
+		wispInput.value = localStorage.getItem("wispcraft_wispurl") as string;
+	}
+
+	saveButton.onclick = () => {
+		const value = wispInput.value;
+		localStorage.setItem("wispcraft_wispurl", value);
+	};
 
 	settingsTab.onclick = () => {
 		const tabs = document.querySelectorAll(".tabs span");

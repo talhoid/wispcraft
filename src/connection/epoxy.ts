@@ -5,7 +5,9 @@ import initEpoxy, {
 } from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
 
 export let wisp =
-	new URLSearchParams(location.search).get("wisp") || "ws://localhost:5001/";
+	new URLSearchParams(location.search).get("wisp") ||
+	localStorage.getItem("wispcraft_wispurl") ||
+	"ws://localhost:5001/";
 let connectedwisp = "";
 
 let initted = false;
