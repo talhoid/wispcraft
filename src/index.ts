@@ -2,6 +2,7 @@ import { Buffer } from "./buffer";
 import { BytesWriter, Compressor, Decompressor } from "./connection/framer";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
 import { bytesToUuid, offlineUUID } from "./crypto";
+import { handleSkinCape } from "./skins";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
 enum State {
@@ -26,6 +27,7 @@ enum Serverbound {
 	LoginStart = 0x00,
 	EncryptionResponse = 0x01,
 	/* ==PLAY== */
+	PluginMessage = 0x17,
 }
 
 enum Clientbound {
@@ -43,6 +45,7 @@ enum Clientbound {
 	SetCompression = 0x03,
 	/* ==PLAY== */
 	SetCompressionPlay = 0x46,
+	PluginMessage = 0x3F,
 }
 
 const MINECRAFT_PROTOCOL_VERSION = 47;
@@ -140,6 +143,24 @@ export class EaglerProxy {
 			case State.Play:
 				let pk = packet.readVarInt()!;
 				switch (pk) {
+					case Serverbound.PluginMessage:
+						let tag = packet.readString();
+						if (tag.startsWith("EAG|")) {
+							if (tag == "EAG|Skins-1.8" || tag == "EAG|Capes-1.8") {
+								let isCape = tag[4] == "C";
+								let data = packet.readVariableData();
+								handleSkinCape(isCape, data).then((buf) => {
+									if (buf.length == 0) {
+										return;
+									}
+									let resp = new Packet(Clientbound.PluginMessage);
+									resp.writeString(tag);
+									resp.writeVariableData(buf);
+									this.eagler.write(resp);
+								});
+							}
+							break;
+						}
 					default:
 						let p = new Packet(pk);
 						p.extend(packet);
@@ -245,6 +266,11 @@ export class EaglerProxy {
 						this.decompressor.compressionThresh = threshold;
 						this.compressor.compressionThresh = threshold;
 						break;
+					case Clientbound.PluginMessage:
+						let tag = packet.readString();
+						if (tag.startsWith("EAG|")) {
+							break;
+						}
 					default:
 						// send rest of packet to eagler
 						let eag = new Packet(pk);
