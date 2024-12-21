@@ -5,7 +5,7 @@ export type BytesWriter = WritableStreamDefaultWriter<Buffer>;
 
 function writeTransform<I, O>(
 	stream: WritableStream<I>,
-	transformer: (val: O) => I
+	transformer: (val: O) => I,
 ): WritableStream<O> {
 	const writer = stream.getWriter();
 	return new WritableStream({
@@ -83,8 +83,8 @@ export function lengthTransformer(): TransformStream<Buffer> {
 				return;
 			}
 
-			controller.enqueue(currentPacket);
-			currentPacket = new Buffer(new Uint8Array());
+			controller.enqueue(currentPacket.take(currentSize));
+			currentSize = -1;
 		},
 	});
 }
