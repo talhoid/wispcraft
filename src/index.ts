@@ -350,15 +350,19 @@ export class EaglerProxy {
 
 window.WebSocket = makeFakeWebSocket();
 
-const eagoptions = {
-	demoMode: false,
-	container: "game_frame",
-	worldsDB: "worlds",
-	servers: [{ addr: "settings", name: "Wispcraft Settings" }],
-	relays: [],
-};
+let eagoptions;
+const settings = { addr: "settings", name: "Wispcraft Settings" };
 Object.defineProperty(window, "eaglercraftXOpts", {
 	get() {
-		return eagoptions;
+		if (eagoptions) {
+			return eagoptions;
+		}
+		return {servers: [settings]}
+	},
+	set(v) {
+		eagoptions = v;
+		if (eagoptions?.servers) {
+			eagoptions.servers.unshift(settings);
+		}
 	},
 });
