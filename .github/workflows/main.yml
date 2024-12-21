@@ -75,8 +75,5 @@ jobs:
           tag: latest
           commit: main
           body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
-          artifacts: |
-            dist/*.js
-            dist/*.js.map
-            dist/*.html
+          artifacts: "dist/*.js,dist/*.js.map,dist/*.html"
           prerelease: true
