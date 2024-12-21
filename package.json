@@ -12,6 +12,11 @@
 	},
 	"keywords": [],
 	"author": "",
+	"files": [
+		"dist/*.js",
+		"dist/*.js.map",
+		"dist/*.html"
+	],
 	"license": "ISC",
 	"devDependencies": {
 		"@rollup/plugin-data-uri": "^1.0.3",
