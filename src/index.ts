@@ -194,14 +194,14 @@ export class EaglerProxy {
 						if (tag.startsWith("EAG|")) {
 							if (tag == "EAG|Skins-1.8" || tag == "EAG|Capes-1.8") {
 								let isCape = tag[4] == "C";
-								let data = packet.readVariableData();
+								let data = packet.take(packet.length);
 								handleSkinCape(isCape, data).then((buf) => {
 									if (buf.length == 0) {
 										return;
 									}
 									let resp = new Packet(Clientbound.PluginMessage);
 									resp.writeString(tag);
-									resp.writeVariableData(buf);
+									resp.extend(buf);
 									this.eagler.write(resp);
 								});
 							}
@@ -256,7 +256,6 @@ export class EaglerProxy {
 						if (body.favicon) {
 							response.data.icon = true;
 							let image = new Image();
-							image.src = body.favicon;
 							image.onload = () => {
 								let canvas = document.createElement("canvas");
 								canvas.width = image.width;
@@ -271,6 +270,7 @@ export class EaglerProxy {
 								).data;
 								this.eagler.write(new Buffer(new Uint8Array(pixels)));
 							};
+							image.src = body.favicon;
 						}
 
 						this.eagler.write(JSON.stringify(response));
@@ -315,7 +315,9 @@ export class EaglerProxy {
 						this.compressor.compressionThresh = threshold;
 						break;
 					case Clientbound.PluginMessage:
-						let tag = packet.readString();
+						let fard = Buffer.new();
+						fard.extend(packet);
+						let tag = fard.readString();
 						if (tag.startsWith("EAG|")) {
 							break;
 						}
