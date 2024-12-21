@@ -41,7 +41,7 @@ function link<T>(): [ReadableStream<T>, WritableStream<T>] {
 export class Connection {
 	// used by fake websocket
 	eaglerIn: BytesWriter;
-	eaglerOut: BytesReader;
+	eaglerOut: ReadableStreamDefaultReader<Buffer | string>;
 
 	// linked to eaglerIn, has packets the client sends
 	processIn: BytesReader;
@@ -49,6 +49,8 @@ export class Connection {
 	processOut: BytesWriter;
 
 	url: URL;
+
+	impl?: EaglerProxy;
 
 	constructor(uri: string) {
 		const [processIn, eaglerIn] = link<Buffer>();
@@ -79,7 +81,7 @@ export class Connection {
 				return b;
 			}).getWriter(),
 			this.url.hostname,
-			this.url.port ? parseInt(this.url.port) : 25565
+			this.url.port ? parseInt(this.url.port) : 25565,
 		);
 
 		// epoxy -> process -> (hopefully) eagler task
@@ -89,7 +91,7 @@ export class Connection {
 					.pipeThrough(bufferTransformer())
 					.pipeThrough(lengthTransformer())
 					.pipeThrough(impl.decompressor.transform),
-				100
+				100,
 			).getReader();
 
 			while (true) {
@@ -112,5 +114,6 @@ export class Connection {
 			}
 			// TODO cleanup
 		})();
+		this.impl = impl;
 	}
 }

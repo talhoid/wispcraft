@@ -24,7 +24,9 @@ class WispWS extends EventTarget {
 					if (done || !value) break;
 
 					this.dispatchEvent(
-						new MessageEvent("message", { data: value.inner })
+						new MessageEvent("message", {
+							data: typeof value === "string" ? value : value.inner,
+						}),
 					);
 				}
 				this.dispatchEvent(new Event("close"));
@@ -38,7 +40,11 @@ class WispWS extends EventTarget {
 	send(chunk: Uint8Array | ArrayBuffer | string) {
 		let buf: Buffer;
 		if (typeof chunk == "string") {
-			console.warn("IGNORING CHUNK", chunk);
+			if (chunk.toLowerCase() == "accept: motd") {
+				this.inner.impl?.ping();
+			} else {
+				console.warn("IGNORING CHUNK", chunk);
+			}
 			return;
 		} else if (chunk instanceof ArrayBuffer) {
 			buf = new Buffer(new Uint8Array(chunk), true);

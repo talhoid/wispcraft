@@ -73,8 +73,25 @@ export class Buffer {
 		this.take(2);
 		return ret;
 	}
+
 	writeUShort(num: number) {
 		this.extend(new Buffer([num & 0xff, (num >> 8) & 0xff]));
+	}
+
+	readLong(): number {
+		let ret = 0;
+		for (let i = 0; i < 8; i++) {
+			ret |= this.get(i) << (i * 8);
+		}
+		this.take(8);
+		return ret;
+	}
+
+	writeLong(num: number) {
+		for (let i = 0; i < 8; i++) {
+			this.extend(new Buffer([num & 0xff]));
+			num >>= 8;
+		}
 	}
 
 	// you can probably make this better

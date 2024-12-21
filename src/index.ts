@@ -6,7 +6,7 @@ import { offlineUUID } from "./crypto";
 // https://minecraft.wiki/w/Protocol?oldid=2772100
 enum State {
 	Handshaking = 0x0,
-	Status = 0x1, // unused
+	Status = 0x1,
 	Login = 0x2,
 	Play = 0x3,
 }
@@ -19,6 +19,9 @@ enum Serverbound {
 	EAG_RequestLogin = 0x04,
 	EAG_ProfileData = 0x05,
 	EAG_FinishLogin = 0x08,
+	/* ==STATUS== */
+	StatusRequest = 0x00,
+	PingRequest = 0x01,
 	/* ==LOGIN== */
 	LoginStart = 0x00,
 	EncryptionResponse = 0x01,
@@ -30,6 +33,9 @@ enum Clientbound {
 	EAG_ServerVersion = 0x02,
 	EAG_AllowLogin = 0x05,
 	EAG_FinishLogin = 0x09,
+	/* ==STATUS== */
+	StatusResponse = 0x00,
+	PongResponse = 0x01,
 	/* ==LOGIN== */
 	Disconnect = 0x0,
 	EncryptionRequest = 0x01,
@@ -62,7 +68,7 @@ export class EaglerProxy {
 	state: State = State.Handshaking;
 
 	net: BytesWriter;
-	eagler: BytesWriter;
+	eagler: WritableStreamDefaultWriter<Buffer | string>;
 
 	username: string = "";
 	realUuid: string = "";
@@ -71,7 +77,7 @@ export class EaglerProxy {
 		eaglerOut: BytesWriter,
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
-		public serverPort: number
+		public serverPort: number,
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
@@ -177,6 +183,54 @@ export class EaglerProxy {
 						this.eagler.write(eag);
 				}
 		}
+	}
+
+	// pings remote server, sends json to eagler
+	async ping() {
+		let handshake = new Packet(Serverbound.Handshake);
+		handshake.writeVarInt(MINECRAFT_PROTOCOL_VERSION);
+		handshake.writeString(this.serverAddress);
+		handshake.writeUShort(this.serverPort);
+		handshake.writeVarInt(State.Status);
+		this.net.write(handshake);
+
+		let statusRequest = new Packet(Serverbound.StatusRequest);
+		this.net.write(statusRequest);
+
+		let pingRequest = new Packet(Serverbound.PingRequest);
+		pingRequest.writeLong(Date.now());
+		this.net.write(pingRequest);
+
+		this.eagler.write(`{
+    "name": "Asspixel",
+    "brand": "lax1dude",
+    "vers": "EaglerXVelocity/1.1.4",
+    "cracked": true,
+    "time": 5137520893,
+    "uuid": "5825f044-0fa4-41e6-97e3-5007aaf0526d",
+    "type": "motd",
+    "data": {
+        "cache": true,
+        "motd": [
+        	"gyat network"
+        ],
+        "icon": true,
+        "online": 85,
+        "max": 420,
+        "players": [
+            "Evie_May",
+            "tomfoolery",
+            "_Herzha_",
+            "Nobleman_",
+            "MRC1000",
+            "PolarisPlayzALT",
+            "summer2",
+            "Tipsy_echo30",
+            "poshalko1488",
+            "§7§o(76 more)"
+        ]
+    }
+}`);
 	}
 }
 
