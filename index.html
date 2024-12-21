@@ -176,41 +176,26 @@
 							fileElem.removeAttribute('disabled');
 							return;
 						}
-						rollup.rollup({
-							input: './index',
-							plugins: [
-								{
-									name: 'url-resolver',
-									resolveId(source) {
-										if (source == '@mercuryworkshop/wisp-js/client') {
-											return 'https://www.unpkg.com/@mercuryworkshop/wisp-js/dist/wisp-client.mjs';
-										}
-										return new URL('src/' + source + '.js', window.location.href).href;
-									},
-									async load(id) {
-										const response = await fetch(id);
-										return response.text().replace('CLOSE,stream_id,', 'CLOSE,stream_id=this.stream_id,');
-									}
-								}
-							]
-						})
-						.then(bundle => bundle.generate({
-							format: 'iife'
-						}))
-						.then(({ output }) => {
-							// todo: do this better...
-							content = content.slice(0, index) + '<script type="text/javascript">' + output[0].code + '<' + '/script>' + content.slice(index);
-							const blob = new Blob([ content ], { type: 'text/html; charset=utf-8' })
-							downloadLink.download = 'wisped-' + htmlFile.name;
-							downloadLink.href = window.URL.createObjectURL(blob);
-							fileElem.value = '';
-							fileElem.removeAttribute('disabled');
-						});
+							content =
+								content.slice(0, index) +
+								`<script>${getWispcraftBundle()}<${"/"}script>` +
+								content.slice(index);
+						const blob = new Blob([ content ], { type: 'text/html; charset=utf-8' })
+						downloadLink.download = 'wispcraft-' + htmlFile.name;
+						downloadLink.href = window.URL.createObjectURL(blob);
+						fileElem.value = '';
+						fileElem.removeAttribute('disabled');
 					};
 					reader.readAsText(htmlFile);
 				} else {
 					fileElem.removeAttribute('disabled');
 				}
+			}
+		</script>
+		<script id="wispcraft-bundled">
+			// wispcraft will be bundled and stored here
+			function getWispcraftBundle() {
+				atob("WISPCRAFTSRCBUNDLE")
 			}
 		</script>
 	</body>

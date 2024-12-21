@@ -69,14 +69,14 @@ async function makeCompressedPacket(packetId, dataByteArray, thresh) {
 function bytesToUuid(byteArray) {
 	let hexString = "";
 	for (let i = 0; i < 16; i++) {
-	  const hex = byteArray[i].toString(16).padStart(2, "0");
-	  hexString += hex;
+		const hex = byteArray[i].toString(16).padStart(2, "0");
+		hexString += hex;
 	}
 
 	const uuid = `${hexString.slice(0, 8)}-${hexString.slice(8, 12)}-${hexString.slice(12, 16)}-${hexString.slice(16, 20)}-${hexString.slice(20)}`;
-  
+
 	return uuid;
-  }
+}
 
 export {
 	makePacket,

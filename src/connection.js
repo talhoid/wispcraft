@@ -80,13 +80,13 @@ export class wispWS extends EventTarget {
 					let packetId, packet;
 					if (this.compression >= 0) {
 						const dataLenVI = readVarInt(
-							selfPacket.slice(packetOff, packetOff + packetLen),
+							selfPacket.slice(packetOff, packetOff + packetLen)
 						);
 						let dataLen = dataLenVI[0];
 						const dataLenOff = dataLenVI[1];
 						const compressedPacket = selfPacket.slice(
 							packetOff + dataLenOff,
-							packetOff + packetLen,
+							packetOff + packetLen
 						);
 						const chunks = [];
 						if (dataLen == 0) {
@@ -98,7 +98,7 @@ export class wispWS extends EventTarget {
 							]).stream();
 							try {
 								const decompressedStream = stream.pipeThrough(
-									new DecompressionStream("deflate"),
+									new DecompressionStream("deflate")
 								);
 								for await (const chunk of decompressedStream) {
 									chunks.push(...chunk);
@@ -113,19 +113,19 @@ export class wispWS extends EventTarget {
 						packet = chunks.slice(packetIdOff, dataLen);
 					} else {
 						const packetIdVI = readVarInt(
-							selfPacket.slice(packetOff, packetOff + packetLen),
+							selfPacket.slice(packetOff, packetOff + packetLen)
 						);
 						packetId = packetIdVI[0];
 						const packetIdOff = packetIdVI[1];
 						packet = selfPacket.slice(
 							packetOff + packetIdOff,
-							packetOff + packetLen,
+							packetOff + packetLen
 						);
 					}
 					if (packetId == 0x3f) {
 						const vivi = readVarInt(packet);
 						const tag = new TextDecoder().decode(
-							Uint8Array.from(packet.slice(vivi[1], vivi[1] + vivi[0])),
+							Uint8Array.from(packet.slice(vivi[1], vivi[1] + vivi[0]))
 						);
 						if (tag.startsWith("EAG|")) {
 							return;
@@ -138,7 +138,7 @@ export class wispWS extends EventTarget {
 							this.dispatchEvent(
 								new MessageEvent("message", {
 									data: Uint8Array.from([...makeVarInt(packetId), ...packet]),
-								}),
+								})
 							);
 						}
 					} else if (packetId == 0x03) {
@@ -147,7 +147,7 @@ export class wispWS extends EventTarget {
 						this.dispatchEvent(
 							new MessageEvent("message", {
 								data: Uint8Array.from([packets.PROTOCOL_SERVER_FINISH_LOGIN]),
-							}),
+							})
 						);
 						this.loggedIn = true;
 						for (let p of this.eag2wispQueue) {
@@ -157,8 +157,8 @@ export class wispWS extends EventTarget {
 									await makeCompressedPacket(
 										vi[0],
 										p.slice(vi[1]),
-										this.compression,
-									),
+										this.compression
+									)
 								);
 							} else {
 								p = Uint8Array.from(makePacket(vi[0], p.slice(vi[1])));
@@ -197,7 +197,7 @@ export class wispWS extends EventTarget {
 									0,
 									0,
 								]),
-							}),
+							})
 						);
 						break;
 					case packets.PROTOCOL_CLIENT_REQUEST_LOGIN:
@@ -227,7 +227,7 @@ export class wispWS extends EventTarget {
 									0,
 									0,
 								]),
-							}),
+							})
 						);
 						break;
 					case packets.PROTOCOL_CLIENT_PROFILE_DATA:
@@ -242,11 +242,11 @@ export class wispWS extends EventTarget {
 									...makeString(this.ipPort[0]),
 									...makeShort(this.ipPort[1]),
 									...makeVarInt(2),
-								]),
-							),
+								])
+							)
 						);
 						await this.wispStream.send(
-							Uint8Array.from(makePacket(0x00, [...makeString(this.username)])),
+							Uint8Array.from(makePacket(0x00, [...makeString(this.username)]))
 						);
 						break;
 					default:
@@ -257,7 +257,7 @@ export class wispWS extends EventTarget {
 			if (vi[0] == 0x17) {
 				const vivi = readVarInt(p);
 				const tag = new TextDecoder().decode(
-					Uint8Array.from(p.slice(vivi[1], vivi[1] + vivi[0])),
+					Uint8Array.from(p.slice(vivi[1], vivi[1] + vivi[0]))
 				);
 				if (tag.startsWith("EAG|")) {
 					if (tag == "EAG|Skins-1.8" || tag == "EAG|Capes-1.8") {
@@ -267,7 +267,7 @@ export class wispWS extends EventTarget {
 							conn,
 							p.slice(
 								vivi[1] + vivi[0] + vivivi[1],
-								vivi[1] + vivi[0] + vivivi[1] + vivivi[0],
+								vivi[1] + vivi[0] + vivivi[1] + vivivi[0]
 							),
 							(resp) => {
 								this.dispatchEvent(
@@ -279,9 +279,9 @@ export class wispWS extends EventTarget {
 											...makeVarInt(resp.length),
 											...resp,
 										]),
-									}),
+									})
 								);
-							},
+							}
 						);
 					}
 					return;
@@ -290,7 +290,7 @@ export class wispWS extends EventTarget {
 			if (this.loggedIn) {
 				if (this.compression >= 0) {
 					p = Uint8Array.from(
-						await makeCompressedPacket(vi[0], p.slice(vi[1]), this.compression),
+						await makeCompressedPacket(vi[0], p.slice(vi[1]), this.compression)
 					);
 				} else {
 					p = Uint8Array.from(makePacket(vi[0], p.slice(vi[1])));

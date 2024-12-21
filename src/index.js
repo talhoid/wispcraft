@@ -6,7 +6,8 @@ import epoxy, {
 } from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
 import { createUI, showUI } from "./ui";
 
-export const wispurl = (new URL(window.location.href)).searchParams.get("wisp") || "wss://anura.pro/";
+export const wispurl =
+	new URL(window.location.href).searchParams.get("wisp") || "wss://anura.pro/";
 
 export let epoxyClient;
 epoxy().then(() => {

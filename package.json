@@ -6,9 +6,10 @@
 	"type": "module",
 	"scripts": {
 		"build": "rollup -c",
-		"build:release": "RELEASE=1 rollup -c",
-		"format": "prettier --config .prettierrc.js --write .",
-		"watch": "rollup -cw"
+		"build:injector": "bash build_injector.sh",
+		"watch": "rollup -cw",
+		"prepack": "npm run build && npm run build:injector",
+		"format": "prettier --config .prettierrc.js --write ."
 	},
 	"keywords": [],
 	"author": "",

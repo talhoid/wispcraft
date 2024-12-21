@@ -267,57 +267,57 @@ export function createUI() {
             </div>
         </div>`;
 
-    document.body.insertAdjacentHTML("beforeend", ui);
+	document.body.insertAdjacentHTML("beforeend", ui);
 
-    const settings = document.querySelector("#settings");
-    const auth = document.querySelector("#auth");
+	const settings = document.querySelector("#settings");
+	const auth = document.querySelector("#auth");
 
-    const settingsTab = document.querySelector("#settings_tab");
-    const authTab = document.querySelector("#auth_tab");
+	const settingsTab = document.querySelector("#settings_tab");
+	const authTab = document.querySelector("#auth_tab");
 
-    settingsTab.onclick = () => {
-        const tabs = document.querySelectorAll(".tabs span");
-        const pages = document.querySelectorAll(".settings-ui .content");
+	settingsTab.onclick = () => {
+		const tabs = document.querySelectorAll(".tabs span");
+		const pages = document.querySelectorAll(".settings-ui .content");
 
-        for (const tab of tabs) {
-            tab.classList.remove("selected");
-        }
+		for (const tab of tabs) {
+			tab.classList.remove("selected");
+		}
 
-        for (const page of pages) {
-            page.classList.remove("shown");
-            page.classList.add("hidden");
-        }
+		for (const page of pages) {
+			page.classList.remove("shown");
+			page.classList.add("hidden");
+		}
 
-        settings.classList.remove("hidden");
-        settings.classList.add("shown");
-        settingsTab.classList.add("selected");
-    };
+		settings.classList.remove("hidden");
+		settings.classList.add("shown");
+		settingsTab.classList.add("selected");
+	};
 
-    authTab.onclick = () => {
-        const tabs = document.querySelectorAll(".tabs span");
-        const pages = document.querySelectorAll(".settings-ui .content");
+	authTab.onclick = () => {
+		const tabs = document.querySelectorAll(".tabs span");
+		const pages = document.querySelectorAll(".settings-ui .content");
 
-        for (const tab of tabs) {
-            tab.classList.remove("selected");
-        }
+		for (const tab of tabs) {
+			tab.classList.remove("selected");
+		}
 
-        for (const page of pages) {
-            page.classList.remove("shown");
-            page.classList.add("hidden");
-        }
+		for (const page of pages) {
+			page.classList.remove("shown");
+			page.classList.add("hidden");
+		}
 
-        auth.classList.remove("hidden");
-        auth.classList.add("shown");
-        authTab.classList.add("selected");
-    };
+		auth.classList.remove("hidden");
+		auth.classList.add("shown");
+		authTab.classList.add("selected");
+	};
 }
 
 export function showUI(args) {
-    const settingsUi = document.querySelector(".settings-ui");
-    if (!settingsUi) {
-        createUI();
-        return showUI(args);
-    }
-    settingsUi.classList.remove("hidden");
-    document.querySelector(".backdrop-blur").classList.remove("hidden");
+	const settingsUi = document.querySelector(".settings-ui");
+	if (!settingsUi) {
+		createUI();
+		return showUI(args);
+	}
+	settingsUi.classList.remove("hidden");
+	document.querySelector(".backdrop-blur").classList.remove("hidden");
 }
