@@ -19,6 +19,15 @@ export interface CapeInfo extends AccessoryInfo {
 	alias: string;
 }
 
+// https://github.com/MercuryWorkshop/epoxy-tls/blob/7ce772da7de828d61b26e13a51ae1c32a8ff913d/client/src/utils/js.rs#L19-L24
+function randomUUID() {
+	return (
+		/* @ts-ignore */
+		[1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g,
+			c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+	);
+}
+
 async function xboxAuth(msToken: string): Promise<string> {
 	const res = await fetch("https://user.auth.xboxlive.com/user/authenticate", {
 		headers: {
