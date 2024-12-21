@@ -28,11 +28,14 @@ enum Clientbound {
 	/* ==HANDSHAKING== */
 	EAG_ServerVersion = 0x02,
 	EAG_AllowLogin = 0x05,
+	EAG_FinishLogin = 0x09,
 	/* ==LOGIN== */
 	Disconnect = 0x0,
 	EncryptionRequest = 0x01,
 	LoginSuccess = 0x02,
 	SetCompression = 0x03,
+	/* ==PLAY== */
+	SetCompressionPlay = 0x46,
 }
 
 const MINECRAFT_PROTOCOL_VERSION = 47;
@@ -69,6 +72,7 @@ export class EaglerProxy {
 	eagler: BytesWriter;
 
 	username: string = "";
+	realUuid: string = "";
 
 	constructor(
 		eaglerOut: BytesWriter,
@@ -133,6 +137,39 @@ export class EaglerProxy {
 	// consumes packets from the network, sends them to eagler
 	async epoxyRead(packet: Buffer) {
 		console.log(packet.toArray(), packet.toStr());
+		switch (this.state) {
+			case State.Handshaking:
+			case State.Status:
+				break;
+			case State.Login:
+				switch (packet.readVarInt()) {
+					case Clientbound.Disconnect:
+						console.error("Disconnect during login: " + packet.readString());
+						// TODO forward to eagler
+						break;
+					case Clientbound.LoginSuccess:
+						this.realUuid = packet.readString();
+						this.state = State.Play;
+						let eag = new Packet(Clientbound.EAG_FinishLogin);
+						eag.transmit(this.eagler);
+						break;
+					case Clientbound.SetCompression:
+						let threshold = packet.readVarInt();
+						// TODO set decompressor/compressor threshold
+						break;
+				}
+				break;
+			case State.Play:
+				switch (packet.readVarInt()) {
+					case Clientbound.SetCompressionPlay:
+						let threshold = packet.readVarInt();
+						// TODO set decompressor/compressor threshold
+						break;
+					default:
+						// send rest of packet to eagler
+						this.eagler.write(packet);
+				}
+		}
 	}
 }
 
