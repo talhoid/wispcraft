@@ -7,8 +7,9 @@
 	"scripts": {
 		"build": "rollup -c",
 		"build:injector": "bash build_injector.sh",
-		"format": "prettier --config .prettierrc.js --write .",
-		"watch": "rollup -cw"
+		"watch": "rollup -cw",
+		"prepack": "npm run build && npm run build:injector",
+		"format": "prettier --config .prettierrc.js --write ."
 	},
 	"keywords": [],
 	"author": "",
