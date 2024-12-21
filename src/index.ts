@@ -1,7 +1,7 @@
 import { Buffer } from "./buffer";
 import { BytesWriter, Compressor, Decompressor } from "./connection/framer";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
-import { offlineUUID } from "./crypto";
+import { bytesToUuid, offlineUUID } from "./crypto";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
 enum State {
@@ -151,7 +151,50 @@ export class EaglerProxy {
 					case Clientbound.StatusResponse:
 						let json = packet.readString();
 						console.log("Status response: " + json);
-						// this.eagler.write(json);
+						let body = JSON.parse(json);
+						let response: any = {
+							name: "Java Server",
+							brand: "mercuryworkshop",
+							vers: "wispcraft/1.0",
+							cracked: true,
+							time: Date.now(),
+							uuid: bytesToUuid(offlineUUID("wispcraft")),
+							type: "motd",
+							data: {
+								cache: false,
+								icon: false,
+								online: body.players.online,
+								max: body.players.max,
+								players: [],
+							},
+						};
+
+						if (body.description)
+							if (typeof body.description == "string")
+								response.data.motd = [body.description];
+							else response.data.motd = [body.description.text];
+
+						if (body.favicon) {
+							response.data.icon = true;
+							let image = new Image();
+							image.src = body.favicon;
+							image.onload = () => {
+								let canvas = document.createElement("canvas");
+								canvas.width = image.width;
+								canvas.height = image.height;
+								let ctx = canvas.getContext("2d")!;
+								ctx.drawImage(image, 0, 0);
+								let pixels = ctx.getImageData(
+									0,
+									0,
+									canvas.width,
+									canvas.height,
+								).data;
+								this.eagler.write(new Buffer(new Uint8Array(pixels)));
+							};
+						}
+
+						this.eagler.write(JSON.stringify(response));
 						break;
 					case Clientbound.PongResponse:
 						let time = packet.readLong();
@@ -218,37 +261,6 @@ export class EaglerProxy {
 		this.net.write(pingRequest);
 
 		this.state = State.Status;
-
-		this.eagler.write(`{
-    "name": "Asspixel",
-    "brand": "lax1dude",
-    "vers": "EaglerXVelocity/1.1.4",
-    "cracked": true,
-    "time": 5137520893,
-    "uuid": "5825f044-0fa4-41e6-97e3-5007aaf0526d",
-    "type": "motd",
-    "data": {
-        "cache": true,
-        "motd": [
-        	"gyat network"
-        ],
-        "icon": true,
-        "online": 85,
-        "max": 420,
-        "players": [
-            "Evie_May",
-            "tomfoolery",
-            "_Herzha_",
-            "Nobleman_",
-            "MRC1000",
-            "PolarisPlayzALT",
-            "summer2",
-            "Tipsy_echo30",
-            "poshalko1488",
-            "§7§o(76 more)"
-        ]
-    }
-}`);
 	}
 }
 

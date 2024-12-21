@@ -121,19 +121,19 @@ export class Connection {
 	}
 
 	ping() {
-		// this.impl?.ping();
+		this.impl?.ping();
 		// legacy ping (https://c4k3.github.io/wiki.vg/Server_List_Ping.html)
 		// not a normal packet
-		let legacy = Buffer.new();
-		legacy.writeBytes([0xfe, 0x01, 0xfa]);
-		let magic = new Buffer(new TextEncoder().encode("MC|PingHost"));
-		legacy.writeUShort(magic.length);
-		legacy.extend(magic);
-		legacy.writeUShort(7 + 2 * this.url.hostname.length);
-		legacy.writeUShort(74);
-		legacy.writeUShort(this.url.hostname.length);
-		legacy.extend(new Buffer(new TextEncoder().encode(this.url.hostname)));
-		legacy.writeUShort(this.url.port ? parseInt(this.url.port) : 25565);
-		this.rawEpoxy?.write(legacy);
+		// let legacy = Buffer.new();
+		// legacy.writeBytes([0xfe, 0x01, 0xfa]);
+		// let magic = new Buffer(new TextEncoder().encode("MC|PingHost"));
+		// legacy.writeUShort(magic.length);
+		// legacy.extend(magic);
+		// legacy.writeUShort(7 + 2 * this.url.hostname.length);
+		// legacy.writeUShort(74);
+		// legacy.writeUShort(this.url.hostname.length);
+		// legacy.extend(new Buffer(new TextEncoder().encode(this.url.hostname)));
+		// legacy.writeUShort(this.url.port ? parseInt(this.url.port) : 25565);
+		// this.rawEpoxy?.write(legacy);
 	}
 }
