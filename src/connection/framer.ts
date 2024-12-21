@@ -146,8 +146,7 @@ export class Compressor {
 			packet.extend(chunk);
 		} else {
 			const compressed = await compress(chunk);
-			const packet = Buffer.new();
-			packet.writeVarInt(compressed.length);
+			packet.writeVarInt(chunk.length);
 			packet.extend(compressed);
 		}
 
