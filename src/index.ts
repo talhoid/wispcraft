@@ -1,6 +1,7 @@
 import { Buffer } from "./buffer";
 import { BytesWriter, Compressor, Decompressor } from "./connection/framer";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
+import { offlineUUID } from "./crypto";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
 enum State {
@@ -95,9 +96,7 @@ export class EaglerProxy {
 
 						let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
 						fakelogin.writeString(username);
-						fakelogin.writeBytes([
-							0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-						]);
+						fakelogin.writeBytes(offlineUUID(username));
 						this.eagler.write(fakelogin);
 						return;
 					case Serverbound.EAG_FinishLogin:
@@ -168,7 +167,8 @@ export class EaglerProxy {
 				switch (pk) {
 					case Clientbound.SetCompressionPlay:
 						let threshold = packet.readVarInt();
-						// TODO set decompressor/compressor threshold
+						this.decompressor.compressionThresh = threshold;
+						this.compressor.compressionThresh = threshold;
 						break;
 					default:
 						// send rest of packet to eagler
