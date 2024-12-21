@@ -16,6 +16,8 @@ enum Serverbound {
 	Handshake = 0x00,
 	EAG_ClientVersion = 0x01,
 	EAG_RequestLogin = 0x04,
+	EAG_ProfileData = 0x05,
+	EAG_FinishLogin = 0x08,
 	/* ==LOGIN== */
 	LoginStart = 0x00,
 	EncryptionResponse = 0x01,
@@ -32,6 +34,8 @@ enum Clientbound {
 	LoginSuccess = 0x02,
 	SetCompression = 0x03,
 }
+
+const MINECRAFT_PROTOCOL_VERSION = 47;
 
 class Packet extends Buffer {
 	constructor(packetType: number) {
@@ -64,14 +68,20 @@ export class EaglerProxy {
 	net: BytesWriter;
 	eagler: BytesWriter;
 
-	constructor(eaglerOut: BytesWriter, epoxyOut: BytesWriter) {
+	username: string = "";
+
+	constructor(
+		eaglerOut: BytesWriter,
+		epoxyOut: BytesWriter,
+		public serverAddress: string,
+		public serverPort: number,
+	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
 	}
 
 	// consumes packets from eagler, sends them to the upstream server
 	async eaglerRead(packet: Buffer) {
-		console.log(packet);
 		console.log(packet.toArray(), packet.toStr());
 		switch (this.state) {
 			case State.Handshaking:
@@ -79,16 +89,38 @@ export class EaglerProxy {
 					case Serverbound.EAG_ClientVersion:
 						console.log("Client version request");
 						// eagler specific packet, return a fake version number
-						let ver = new Packet(Clientbound.EAG_ServerVersion);
-						ver.writeBytes([0, 3, 0, 47, 0, 0, 0, 0, 0]); // idk what these mean ayun fill this in
-						ver.transmit(this.eagler);
+						let fakever = new Packet(Clientbound.EAG_ServerVersion);
+						fakever.writeBytes([0, 3, 0, 47, 0, 0, 0, 0, 0]); // idk what these mean ayun fill this in
+						fakever.transmit(this.eagler);
 						return;
 					case Serverbound.EAG_RequestLogin:
-						console.log(packet);
-						console.log(packet.get(1));
 						let username = packet.readString();
 						console.log("User " + username + " requested login");
+						this.username = username;
+
+						let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
+						fakelogin.writeString(username);
+						fakelogin.writeBytes([
+							0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+						]);
+						fakelogin.transmit(this.eagler);
 						return;
+					case Serverbound.EAG_FinishLogin:
+						// this says finish login but it only finishes the handshake stage since eagler
+						// now send the real login packets
+						let handshake = new Packet(Serverbound.Handshake);
+						handshake.writeVarInt(MINECRAFT_PROTOCOL_VERSION);
+						handshake.writeString(this.serverAddress);
+						handshake.writeUShort(this.serverPort);
+						handshake.writeVarInt(State.Login);
+						handshake.transmit(this.net, true);
+
+						let loginstart = new Packet(Serverbound.LoginStart);
+						loginstart.writeString(this.username);
+						loginstart.transmit(this.net, true);
+
+						this.state = State.Login;
+						break;
 				}
 				break;
 			case State.Status:

@@ -47,7 +47,7 @@ export class Connection {
 	// linked to eaglerOut, has packets the server sends
 	processOut: BytesWriter;
 
-	socketaddr: string;
+	url: URL;
 
 	constructor(uri: string) {
 		const [processIn, eaglerIn] = link<Buffer>();
@@ -58,31 +58,22 @@ export class Connection {
 		this.eaglerOut = eaglerOut.getReader();
 		this.processOut = processOut.getWriter();
 
-		// ayunami code
-		let ipPort = uri.slice(uri.toLowerCase().indexOf("://java://") + 10);
-		let i = ipPort.indexOf("/");
-		if (i != -1) {
-			ipPort = ipPort.slice(0, i);
-		}
-		i = ipPort.lastIndexOf("]");
-		if (i == -1) {
-			i = +ipPort.includes(":");
-		} else {
-			i = +ipPort.slice(i).includes(":");
-		}
-		if (!i) {
-			ipPort += ":25565";
-		}
-
-		this.socketaddr = ipPort;
+		this.url = new URL(uri.slice(uri.toLowerCase().indexOf("://") + 3));
+		if (!this.url.port) this.url.port = "25565";
+		if (this.url.protocol != "java:") throw new Error("invalid protocol");
 	}
 
 	async forward(connectcallback: () => void) {
-		const conn = await connect_tcp(this.socketaddr);
+		const conn = await connect_tcp(this.url.host);
 		connectcallback();
 		const writer = bufferWriter(conn.write).getWriter();
 
-		const impl = new EaglerProxy(this.processOut, writer);
+		const impl = new EaglerProxy(
+			this.processOut,
+			writer,
+			this.url.hostname,
+			this.url.port ? parseInt(this.url.port) : 25565,
+		);
 
 		// epoxy -> process -> (hopefully) eagler task
 		(async () => {
