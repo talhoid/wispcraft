@@ -78,7 +78,7 @@ export class Buffer {
 	}
 
 	// you can probably make this better
-	readVarInt(): number | undefined {
+	readVarInt(): number {
 		let index = 0;
 		let result = 0;
 		let shift = 0;
@@ -86,7 +86,7 @@ export class Buffer {
 
 		do {
 			if (index >= this.inner.length) {
-				return;
+				throw new Error("data too small");
 			}
 			byte = this.get(index++);
 			result |= (byte & 127) << shift;

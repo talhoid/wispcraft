@@ -112,9 +112,6 @@ export class Decompressor {
 
 				const len = chunk.readVarInt();
 
-				if (len === undefined)
-					throw new Error("Decompressor: packet was too small");
-
 				if (len == 0) {
 					controller.enqueue(chunk);
 				} else if (len >= self.compressionThresh) {
@@ -123,6 +120,37 @@ export class Decompressor {
 					throw new Error(
 						"Decompressor: server sent compressed packet below threshold",
 					);
+				}
+			},
+		});
+	}
+}
+
+export class Compressor {
+	compressionThresh: number = -1;
+	transform: TransformStream<Buffer>;
+
+	constructor() {
+		const self = this;
+		this.transform = new TransformStream({
+			async transform(chunk, controller) {
+				if (self.compressionThresh === -1) {
+					controller.enqueue(chunk);
+					return;
+				}
+
+				// TODO: avoid the copies here
+				if (chunk.length < self.compressionThresh) {
+					const packet = Buffer.new();
+					packet.writeVarInt(0);
+					packet.extend(chunk);
+					controller.enqueue(packet);
+				} else {
+					const compressed = await compress(chunk);
+					const packet = Buffer.new();
+					packet.writeVarInt(compressed.length);
+					packet.extend(compressed);
+					controller.enqueue(packet);
 				}
 			},
 		});
