@@ -24,7 +24,7 @@ class WispWS extends EventTarget {
 					if (done || !value) break;
 
 					this.dispatchEvent(
-						new MessageEvent("message", { data: value.inner }),
+						new MessageEvent("message", { data: value.inner })
 					);
 				}
 				this.dispatchEvent(new Event("close"));
@@ -60,17 +60,16 @@ export function makeFakeWebSocket(): typeof WebSocket {
 	return new Proxy(WebSocket, {
 		construct(_target, [uri, protos]) {
 			let url = new URL(uri);
-			console.log(url)
+			console.log(url);
 			if (url.host == "java") {
 				const ws = new WispWS(uri);
 				ws.start();
 				return ws;
 			} else if (url.host == "settings") {
 				showUI(null);
-				console.log("settings ui?")
+				console.log("settings ui?");
 				return new WebSocket("ws://127.0.0.1:1");
-			}
-			else {
+			} else {
 				return new NativeWebSocket(uri, protos);
 			}
 		},

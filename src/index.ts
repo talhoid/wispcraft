@@ -71,7 +71,7 @@ export class EaglerProxy {
 		eaglerOut: BytesWriter,
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
-		public serverPort: number,
+		public serverPort: number
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;

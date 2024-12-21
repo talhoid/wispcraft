@@ -272,7 +272,9 @@ export function createUI() {
 	const settings = document.querySelector("#settings") as HTMLDivElement;
 	const auth = document.querySelector("#auth") as HTMLDivElement;
 
-	const settingsTab = document.querySelector("#settings_tab") as HTMLSpanElement;
+	const settingsTab = document.querySelector(
+		"#settings_tab"
+	) as HTMLSpanElement;
 	const authTab = document.querySelector("#auth_tab") as HTMLSpanElement;
 
 	settingsTab.onclick = () => {

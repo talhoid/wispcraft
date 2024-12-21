@@ -5,7 +5,7 @@ export type BytesWriter = WritableStreamDefaultWriter<Buffer>;
 
 export function writeTransform<I, O>(
 	stream: WritableStream<I>,
-	transformer: (val: O) => I | Promise<I>,
+	transformer: (val: O) => I | Promise<I>
 ): WritableStream<O> {
 	const writer = stream.getWriter();
 	return new WritableStream({
@@ -67,7 +67,7 @@ export function bufferTransformer(): TransformStream<Uint8Array, Buffer> {
 }
 
 export function bufferWriter(
-	write: WritableStream<Uint8Array>,
+	write: WritableStream<Uint8Array>
 ): WritableStream<Buffer> {
 	return writeTransform(write, (x) => x.inner);
 }
@@ -123,7 +123,7 @@ export class Decompressor {
 					controller.enqueue(chunk);
 				} else {
 					throw new Error(
-						"Decompressor: server sent compressed packet below threshold",
+						"Decompressor: server sent compressed packet below threshold"
 					);
 				}
 			},
@@ -154,18 +154,24 @@ export class Compressor {
 	}
 }
 
-export function eagerlyPoll<T>(stream: ReadableStream<T>, buffer: number): ReadableStream<T> {
-	return new ReadableStream({
-		async start(controller) {
-			const reader = stream.getReader();
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done || !value) break;
-				controller.enqueue(value);
-			}
-			controller.close();
+export function eagerlyPoll<T>(
+	stream: ReadableStream<T>,
+	buffer: number
+): ReadableStream<T> {
+	return new ReadableStream(
+		{
+			async start(controller) {
+				const reader = stream.getReader();
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done || !value) break;
+					controller.enqueue(value);
+				}
+				controller.close();
+			},
 		},
-	}, new CountQueuingStrategy({ highWaterMark: buffer }));
+		new CountQueuingStrategy({ highWaterMark: buffer })
+	);
 }
 
 // @ts-ignore
