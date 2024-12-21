@@ -1,4 +1,5 @@
 import { fetch } from "./connection/epoxy";
+import { bytesToUuid } from "./crypto";
 
 // https://gist.github.com/Plagiatus/ce5f18bc010395fc45d8553905e10f55
 export interface UserInfo {
@@ -19,13 +20,11 @@ export interface CapeInfo extends AccessoryInfo {
 	alias: string;
 }
 
-// https://github.com/MercuryWorkshop/epoxy-tls/blob/7ce772da7de828d61b26e13a51ae1c32a8ff913d/client/src/utils/js.rs#L19-L24
-function randomUUID() {
-	return (
-		/* @ts-ignore */
-		[1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g,
-			c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-	);
+function randomUUID(): string {
+	let bytes = crypto.getRandomValues(new Uint8Array(16));
+	bytes[6] = (bytes[6] & 0x0f) | 0x40;
+	bytes[8] = (bytes[8] & 0x3f) | 0x80;
+	return bytesToUuid([...bytes]);
 }
 
 async function xboxAuth(msToken: string): Promise<string> {
