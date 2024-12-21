@@ -73,18 +73,28 @@ export function lengthTransformer(): TransformStream<Buffer> {
 	let currentSize = -1;
 	return new TransformStream({
 		transform(chunk, controller) {
+			console.log("GOT CHUNK", chunk.toArray(), currentPacket.toArray());
 			currentPacket.extend(chunk);
-			if (currentSize === -1) {
-				currentSize = currentPacket.readVarInt()!;
-			}
+			while (true) {
+				if (currentSize === -1) {
+					const size = currentPacket.readVarInt();
+					if (!size) {
+						// failed to read, don't do anything
+						break;
+					}
+					currentSize = size;
+				}
 
-			if (currentPacket.length < currentSize) {
-				// too small, don't do anything
-				return;
-			}
+				if (currentPacket.length < currentSize) {
+					// too small, don't do anything
+					break;
+				}
 
-			controller.enqueue(currentPacket.take(currentSize));
-			currentSize = -1;
+				const pkt = currentPacket.take(currentSize);
+				console.log("SENDING PACKET", pkt.toArray());
+				controller.enqueue(pkt);
+				currentSize = -1;
+			}
 		},
 	});
 }
@@ -128,3 +138,6 @@ export function eagerlyPoll<T>(stream: ReadableStream<T>): ReadableStream<T> {
 		},
 	});
 }
+
+// @ts-ignore
+window.lengthTransformer = lengthTransformer;

@@ -88,7 +88,7 @@ export class Buffer {
 			if (index >= this.inner.length) {
 				return;
 			}
-			byte = this.inner[index++];
+			byte = this.get(index++);
 			result |= (byte & 127) << shift;
 			shift += 7;
 		} while (byte >= 128);
