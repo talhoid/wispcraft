@@ -136,7 +136,7 @@ export class EaglerProxy {
 		eaglerOut: BytesWriter,
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
-		public serverPort: number,
+		public serverPort: number
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
@@ -267,7 +267,7 @@ export class EaglerProxy {
 									0,
 									0,
 									canvas.width,
-									canvas.height,
+									canvas.height
 								).data;
 								this.eagler.write(new Buffer(new Uint8Array(pixels)));
 							};
@@ -357,12 +357,14 @@ Object.defineProperty(window, "eaglercraftXOpts", {
 		if (eagoptions) {
 			return eagoptions;
 		}
-		return {servers: [settings]}
+		return { servers: [settings] };
 	},
 	set(v) {
 		eagoptions = v;
 		if (eagoptions?.servers) {
 			eagoptions.servers.unshift(settings);
+		} else {
+			eagoptions.servers = [settings];
 		}
 	},
 });

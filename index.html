@@ -189,7 +189,7 @@
 					const reader = new FileReader();
 					reader.onload = function (e) {
 						let content = e.target.result;
-						const index = content.toLowerCase().indexOf("</head>");
+						const index = content.toLowerCase().indexOf("<head>");
 						if (index == -1) {
 							alert("Invalid client file!");
 							fileElem.value = "";

@@ -26,7 +26,7 @@ class WispWS extends EventTarget {
 					this.dispatchEvent(
 						new MessageEvent("message", {
 							data: typeof value === "string" ? value : value.inner,
-						}),
+						})
 					);
 				}
 				this.dispatchEvent(new Event("close"));
@@ -89,7 +89,7 @@ class SettingsWS extends EventTarget {
 							motd: ["Sign in with Microsoft", "Configure Proxy URL"],
 						},
 					}),
-				}),
+				})
 			);
 			// TODO: cleanup
 			let image = new Image();
@@ -103,7 +103,7 @@ class SettingsWS extends EventTarget {
 				ctx.drawImage(image, 0, 0);
 				let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 				this.dispatchEvent(
-					new MessageEvent("message", { data: new Uint8Array(pixels) }),
+					new MessageEvent("message", { data: new Uint8Array(pixels) })
 				);
 			};
 		} else {
