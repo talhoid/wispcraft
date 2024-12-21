@@ -112,7 +112,8 @@ export class Decompressor {
 
 				const len = chunk.readVarInt();
 
-				if (!len) throw new Error("Decompressor: packet was too small");
+				if (len === undefined)
+					throw new Error("Decompressor: packet was too small");
 
 				if (len == 0) {
 					controller.enqueue(chunk);
