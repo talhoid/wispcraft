@@ -130,6 +130,14 @@ export class EaglerProxy {
 				break;
 			case State.Login:
 			case State.Play:
+				let pk = packet.readVarInt()!;
+				switch (pk) {
+					default:
+						let p = new Packet(pk);
+						p.extend(packet);
+						p.transmit(this.net, true);
+						break;
+				}
 		}
 	}
 
