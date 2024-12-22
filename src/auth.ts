@@ -1,5 +1,4 @@
-import { fetch } from "./connection/epoxy";
-import { bytesToUuid } from "./connection/crypto";
+import { epoxyFetch } from "./connection/epoxy";
 
 // https://gist.github.com/Plagiatus/ce5f18bc010395fc45d8553905e10f55
 export interface UserInfo {
@@ -21,7 +20,6 @@ export interface CapeInfo extends AccessoryInfo {
 }
 
 const CLIENT_ID = "a370fff9-7648-4dbf-b96e-2b4f8d539ac2";
-const REDIRECT_PORT = 9090;
 
 interface OAuthResponse {
 	access_token: string;
@@ -31,14 +29,9 @@ interface OAuthResponse {
 	refresh_token: string;
 }
 
-export async function getMicrosoftToken(): Promise<string> {
-	const { code } = await startOAuthFlow();
-	return exchangeCodeForToken(code);
-}
-
 export async function deviceCodeAuth() {
 	// TOOD: Type
-	const deviceCodeRes = await fetch(
+	const deviceCodeRes = await epoxyFetch(
 		"https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode",
 		{
 			method: "POST",
@@ -76,7 +69,7 @@ export async function deviceCodeAuth() {
 		}
 
 		while (!tokenData?.access_token) {
-			const tokenRes = await fetch(
+			const tokenRes = await epoxyFetch(
 				"https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
 				{
 					method: "POST",
@@ -110,60 +103,16 @@ export async function deviceCodeAuth() {
 	return { url: verification_uri, code: user_code, token: tokenGenerator() };
 }
 
-async function startOAuthFlow(): Promise<{ code: string }> {
-	const state = randomUUID();
-	const authUrl = new URL(
-		"https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize"
-	);
-	authUrl.searchParams.append("client_id", CLIENT_ID);
-	authUrl.searchParams.append("response_type", "code");
-	authUrl.searchParams.append(
-		"redirect_uri",
-		`http://localhost:${REDIRECT_PORT}`
-	);
-	authUrl.searchParams.append("scope", "XboxLive.signin offline_access");
-	authUrl.searchParams.append("state", state);
-
-	return { code: authUrl.toString() };
-}
-
-async function exchangeCodeForToken(code: string): Promise<string> {
-	const tokenRes = await fetch(
-		"https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-			},
-			body: new URLSearchParams({
-				client_id: CLIENT_ID,
-				scope: "XboxLive.signin offline_access",
-				code: code,
-				redirect_uri: `http://localhost:${REDIRECT_PORT}`,
-				grant_type: "authorization_code",
-			}).toString(),
-		}
-	);
-
-	const tokenData: OAuthResponse = await tokenRes.json();
-	return tokenData.access_token;
-}
-
-function randomUUID(): string {
-	let bytes = crypto.getRandomValues(new Uint8Array(16));
-	bytes[6] = (bytes[6] & 0x0f) | 0x40;
-	bytes[8] = (bytes[8] & 0x3f) | 0x80;
-	return bytesToUuid([...bytes]);
-}
-
 async function xboxAuth(msToken: string): Promise<string> {
-	const res = await fetch("https://user.auth.xboxlive.com/user/authenticate", {
-		headers: {
-			"Content-Type": "application/json",
-			Accept: "application/json",
-		},
-		method: "POST",
-		body: `{
+	const res = await epoxyFetch(
+		"https://user.auth.xboxlive.com/user/authenticate",
+		{
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
+			},
+			method: "POST",
+			body: `{
 			"Properties": {
 				"AuthMethod": "RPS",
 				"SiteName": "user.auth.xboxlive.com",
@@ -172,7 +121,8 @@ async function xboxAuth(msToken: string): Promise<string> {
 			"RelyingParty": "http://auth.xboxlive.com",
 			"TokenType": "JWT"
  		}`,
-	});
+		}
+	);
 	const json = await res.json();
 	if (!json["Token"]) throw new Error("xbox live did not return a token");
 
@@ -182,21 +132,24 @@ async function xboxAuth(msToken: string): Promise<string> {
 async function xstsAuth(
 	xboxToken: string
 ): Promise<{ token: string; userHash: string }> {
-	const res = await fetch("https://xsts.auth.xboxlive.com/xsts/authorize", {
-		headers: {
-			"Content-Type": "application/json",
-			Accept: "application/json",
-		},
-		method: "POST",
-		body: JSON.stringify({
-			Properties: {
-				SandboxId: "RETAIL",
-				UserTokens: [xboxToken],
+	const res = await epoxyFetch(
+		"https://xsts.auth.xboxlive.com/xsts/authorize",
+		{
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
 			},
-			RelyingParty: "rp://api.minecraftservices.com/",
-			TokenType: "JWT",
-		}),
-	});
+			method: "POST",
+			body: JSON.stringify({
+				Properties: {
+					SandboxId: "RETAIL",
+					UserTokens: [xboxToken],
+				},
+				RelyingParty: "rp://api.minecraftservices.com/",
+				TokenType: "JWT",
+			}),
+		}
+	);
 	const json = await res.json();
 
 	const xboxError = json["XErr"];
@@ -236,7 +189,7 @@ async function xstsAuth(
 }
 
 async function mcAuth(xstsToken: string, xstsHash: string): Promise<string> {
-	const res = await fetch(
+	const res = await epoxyFetch(
 		"https://api.minecraftservices.com/authentication/login_with_xbox",
 		{
 			headers: {
@@ -257,7 +210,7 @@ async function mcAuth(xstsToken: string, xstsHash: string): Promise<string> {
 }
 
 export async function checkOwnership(mcToken: string): Promise<boolean> {
-	const res = await fetch(
+	const res = await epoxyFetch(
 		"https://api.minecraftservices.com/entitlements/mcstore",
 		{
 			headers: {
@@ -275,7 +228,7 @@ export async function checkOwnership(mcToken: string): Promise<boolean> {
 }
 
 export async function getProfile(mcToken: string): Promise<UserInfo> {
-	const res = await fetch(
+	const res = await epoxyFetch(
 		"https://api.minecraftservices.com/minecraft/profile",
 		{
 			headers: {
@@ -301,17 +254,20 @@ export async function joinServer(
 	digest: string,
 	uuid: string
 ) {
-	const res = await fetch("https://api.minecraftservices.com/minecraft/join", {
-		headers: {
-			Authorization: `Bearer ${mcToken}`,
-			"Content-Type": "application/json",
-		},
-		method: "POST",
-		body: JSON.stringify({
-			serverAddress: digest,
-			profileId: uuid,
-			profileName: "name",
-		}),
-	});
+	const res = await epoxyFetch(
+		"https://api.minecraftservices.com/minecraft/join",
+		{
+			headers: {
+				Authorization: `Bearer ${mcToken}`,
+				"Content-Type": "application/json",
+			},
+			method: "POST",
+			body: JSON.stringify({
+				serverAddress: digest,
+				profileId: uuid,
+				profileName: "name",
+			}),
+		}
+	);
 }
 window["deviceCodeAuth"] = deviceCodeAuth;

@@ -59,7 +59,7 @@ class WispWS extends EventTarget {
 	close() {
 		try {
 			this.inner.eaglerIn.close();
-		} catch (err) { }
+		} catch (err) {}
 	}
 }
 class SettingsWS extends EventTarget {
@@ -111,7 +111,7 @@ class SettingsWS extends EventTarget {
 			this.dispatchEvent(new CloseEvent("close"));
 		}
 	}
-	close() { }
+	close() {}
 }
 
 const NativeWebSocket = WebSocket;

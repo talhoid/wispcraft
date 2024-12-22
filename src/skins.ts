@@ -1,5 +1,5 @@
 import { Buffer } from "./buffer";
-import { fetch } from "./connection/epoxy";
+import { epoxyFetch } from "./connection/epoxy";
 import { bytesToUuid } from "./connection/crypto";
 
 const urlCache = {};
@@ -38,13 +38,13 @@ async function funkyFetch(
 ): Promise<Response> {
 	if (!uuid || fetchMode2 == 2) {
 		try {
-			return await fetch(fallbackUrl);
+			return await epoxyFetch(fallbackUrl);
 		} catch (e) {
 			return new Response();
 		}
 	} else if (fetchMode2 == 1) {
 		try {
-			return fetch(
+			return epoxyFetch(
 				"https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid
 			);
 		} catch (e) {
@@ -77,7 +77,7 @@ async function funnyFetch(url: string): Promise<Tex> {
 			if (fetchMode == 0) {
 				fat = await window.fetch(prefix + uuid);
 			} else {
-				fat = await fetch(prefix + uuid);
+				fat = await epoxyFetch(prefix + uuid);
 			}
 			const texData = await getTextureDataByProfileResponse(fat);
 			url = texData.skin;

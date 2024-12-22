@@ -10,7 +10,6 @@ import {
 	lengthTransformer,
 	writeTransform,
 } from "./framer";
-import type { EpoxyIoStream } from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
 
 function link<T>(): [ReadableStream<T>, WritableStream<T>] {
 	let readController: ReadableStreamDefaultController<T>;
