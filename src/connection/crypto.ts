@@ -150,21 +150,25 @@ export function bytesToUuid(byteArray: number[]) {
 }
 
 function gfmult(a: number, b: number) {
-	let res = 0;
-	let carry = 0;
+	let result = 0;
+	let shiftEscapesField = 0;
+
 	for (let i = 0; i < 8; i++) {
 		if (b & 1) {
-			res ^= a;
+			result ^= a;
 		}
-		carry = a & 0x80;
+
+		shiftEscapesField = a & 0x80;
 		a <<= 1;
-		if (carry) {
-			// computes mod (x^8 + x^4 + x^3 + x + 1)
+
+		if (shiftEscapesField) {
 			a ^= 0x11b;
 		}
+
 		b >>= 1;
 	}
-	return res;
+
+	return result;
 }
 
 let sbox = [
@@ -213,57 +217,55 @@ let invsbox = [
 	0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d,
 ];
 
-const mixmatrix = [2, 3, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 3, 1, 1, 2];
-const invmixmatrix = [
-	14, 11, 13, 9, 9, 14, 11, 13, 13, 9, 14, 11, 11, 13, 9, 14,
-];
-
 type Column = [number, number, number, number];
 type Block = [Column, Column, Column, Column];
 
 function mixcolumns(block: Block, inverse: boolean = false): Block {
-	let res = [Array(4), Array(4), Array(4), Array(4)] as Block;
+	block = structuredClone(block) as Block;
+	let temp = Array(4) as Column;
 	for (let col = 0; col < 4; col++) {
-		for (let row = 0; row < 4; row++) {
-			let val = 0;
-			for (let i = 0; i < 4; i++) {
-				if (inverse) {
-					// gf8 matrix mul
-					val ^= gfmult(invmixmatrix[i * 4 + row], block[col][i]);
-				} else {
-					val ^= gfmult(mixmatrix[i * 4 + row], block[col][i]);
-				}
-			}
-			res[col][row] = val;
+		temp[0] =
+			gfmult(block[col][0], 2) ^
+			gfmult(block[col][1], 3) ^
+			block[col][2] ^
+			block[col][3];
+		temp[1] =
+			block[col][0] ^
+			gfmult(block[col][1], 2) ^
+			gfmult(block[col][2], 3) ^
+			block[col][3];
+		temp[2] =
+			block[col][0] ^
+			block[col][1] ^
+			gfmult(block[col][2], 2) ^
+			gfmult(block[col][3], 3);
+		temp[3] =
+			gfmult(block[col][0], 3) ^
+			block[col][1] ^
+			block[col][2] ^
+			gfmult(block[col][3], 2);
+
+		block[col] = structuredClone(temp) as Column;
+	}
+	return block;
+}
+
+function shiftrows(block: Block): Block {
+	let res = [Array(4), Array(4), Array(4), Array(4)] as Block;
+	for (let row = 0; row < 4; row++) {
+		for (let col = 0; col < 4; col++) {
+			res[col][row] = block[(col + row) % 4][row];
 		}
 	}
 	return res;
 }
 
-function shiftrows(block: Block, inverse: boolean = false): Block {
-	let res = [Array(4), Array(4), Array(4), Array(4)] as Block;
-	for (let row = 0; row < 4; row++) {
-		for (let col = 0; col < 4; col++) {
-			if (inverse) {
-				res[col][row] = block[(col - row + 4) % 4][row];
-			} else {
-				res[col][row] = block[(col + row) % 4][row];
-			}
-		}
-	}
-	return res;
-}
-
-function subwords(block: Block, inverse: boolean = false): Block {
+function subwords(block: Block): Block {
 	let res = [Array(4), Array(4), Array(4), Array(4)] as Block;
 
 	for (let row = 0; row < 4; row++) {
 		for (let col = 0; col < 4; col++) {
-			if (inverse) {
-				res[col][row] = invsbox[block[col][row]];
-			} else {
-				res[col][row] = sbox[block[col][row]];
-			}
+			res[col][row] = sbox[block[col][row]];
 		}
 	}
 
@@ -271,19 +273,25 @@ function subwords(block: Block, inverse: boolean = false): Block {
 }
 
 function addroundkey(block: Block, key: Block): Block {
-	let res = [Array(4), Array(4), Array(4), Array(4)] as Block;
-
+	block = structuredClone(block) as Block;
 	for (let row = 0; row < 4; row++) {
 		for (let col = 0; col < 4; col++) {
-			res[col][row] = block[col][row] ^ key[col][row];
+			block[col][row] ^= key[col][row];
 		}
 	}
-
-	return res;
+	return block;
 }
 
 function wordAdd(a: Column, b: Column): Column {
 	return [a[0] ^ b[0], a[1] ^ b[1], a[2] ^ b[2], a[3] ^ b[3]];
+}
+
+function wordRot(a: Column): Column {
+	return [a[1], a[2], a[3], a[0]];
+}
+
+function wordSub(a: Column): Column {
+	return [sbox[a[0]], sbox[a[1]], sbox[a[2]], sbox[a[3]]];
 }
 
 let rcon: Column[] = [
@@ -300,42 +308,30 @@ let rcon: Column[] = [
 ];
 
 function keygen(iv: Uint8Array): Block[] {
-	let key = [Array(4), Array(4), Array(4), Array(4)] as Block;
-	for (let i = 0; i < 4; i++) {
-		for (let j = 0; j < 4; j++) {
-			key[j][i] = iv[i * 4 + j];
-		}
-	}
-
+	let key = arrayToBlock(iv);
 	let keys = [key];
 
-	let col3 = key[3].slice() as Column;
+	let col3 = structuredClone(key[3]) as Column;
 
 	for (let i = 0; i < 10; i++) {
-		// word rotate
-		col3 = [col3[1], col3[2], col3[3], col3[0]];
-		// subword
-		for (let j = 0; j < 4; j++) {
-			col3[j] = sbox[col3[j]];
-		}
-		// add round constant
+		col3 = wordRot(col3);
+		col3 = wordSub(col3);
 		col3 = wordAdd(col3, rcon[i]);
 
-		// next round key
-		let nextKey = key.slice() as Block;
-		nextKey[0] = wordAdd(nextKey[0], col3);
-		for (let j = 1; j < 4; j++) {
-			nextKey[j] = wordAdd(nextKey[j], nextKey[j - 1]);
-		}
-		col3 = nextKey[3].slice() as Column;
+		let nextKey = arrayToBlock(new Uint8Array(16));
+		nextKey[0] = wordAdd(key[0], col3);
+		nextKey[1] = wordAdd(key[1], nextKey[0]);
+		nextKey[2] = wordAdd(key[2], nextKey[1]);
+		nextKey[3] = wordAdd(key[3], nextKey[2]);
+
+		col3 = structuredClone(nextKey[3]) as Column;
 		keys.push(nextKey);
+		key = nextKey;
 	}
 	return keys;
 }
 
-function encryptBlock(block: Block, key: Uint8Array): Block {
-	const roundKeys = keygen(key);
-
+function encryptBlock(block: Block, roundKeys: Block[]): Block {
 	let newblock = addroundkey(block, roundKeys[0]);
 	for (let i = 1; i < 10; i++) {
 		newblock = subwords(newblock);
@@ -353,46 +349,46 @@ function encryptBlock(block: Block, key: Uint8Array): Block {
 function arrayToBlock(array: Uint8Array): Block {
 	let block = [Array(4), Array(4), Array(4), Array(4)] as Block;
 	for (let i = 0; i < 16; i++) {
-		block[i % 4][Math.floor(i / 4)] = array[i];
+		block[Math.floor(i / 4)][i % 4] = array[i];
 	}
 	return block;
 }
 
 // using cfb-8 mode
+let feedback;
 function encrypt(iv: Uint8Array, data: Uint8Array): Uint8Array {
 	// iv is 128 bits
-	let feedback = new Uint8Array(iv);
-	const out: number[] = [];
+	let roundkeys = keygen(iv);
+	let out: number[] = [];
 
 	for (let i = 0; i < data.length; i++) {
 		let block = arrayToBlock(feedback);
-		block = encryptBlock(block, iv);
+		block = encryptBlock(block, roundkeys);
 
 		let ciphertextByte = data[i] ^ block[0][0];
 		out.push(ciphertextByte);
 
 		// shift feedback
-		feedback = feedback.slice(1);
-		feedback[15] = ciphertextByte;
+		feedback = new Uint8Array([...[...feedback].slice(1), ciphertextByte]);
 	}
 
 	return new Uint8Array(out);
 }
-
-function decrypt(iv: Uint8Array, data: Uint8Array): Uint8Array {
-	let feedback = new Uint8Array(iv);
-	const out: number[] = [];
+let roundkeys2;
+let feedback2;
+function encrypt2(iv: Uint8Array, data: Uint8Array): Uint8Array {
+	// iv is 128 bits
+	let out: number[] = [];
 
 	for (let i = 0; i < data.length; i++) {
-		let block = arrayToBlock(feedback);
-		block = encryptBlock(block, iv);
+		let block = arrayToBlock(feedback2);
+		block = encryptBlock(block, roundkeys2);
 
-		let plaintextByte = data[i] ^ block[0][0];
-		out.push(plaintextByte);
+		let ciphertextByte = data[i] ^ block[0][0];
+		out.push(ciphertextByte);
 
 		// shift feedback
-		feedback = feedback.slice(1);
-		feedback[15] = data[i];
+		feedback2 = new Uint8Array([...[...feedback2].slice(1), data[i]]);
 	}
 
 	return new Uint8Array(out);
@@ -400,36 +396,26 @@ function decrypt(iv: Uint8Array, data: Uint8Array): Uint8Array {
 
 export class Decryptor {
 	private feedback: Uint8Array | null = null;
-	private iv: Uint8Array | null = null;
+	private roundkeys: Block[] | null = null;
 
 	transform: TransformStream<Buffer>;
 
 	seed(iv: Uint8Array) {
-		this.iv = iv;
+		this.roundkeys = keygen(iv);
 		this.feedback = new Uint8Array(iv);
 	}
 
 	constructor() {
 		this.transform = new TransformStream<Buffer>({
 			transform: (chunk, controller) => {
-				if (!this.feedback || !this.iv) {
+				if (!this.feedback || !this.roundkeys) {
 					controller.enqueue(chunk);
 					return;
 				}
+				feedback2 = this.feedback;
+				roundkeys2 = this.roundkeys;
 
-				let out = new Uint8Array(chunk.length);
-				for (let i = 0; i < chunk.length; i++) {
-					let block = arrayToBlock(this.feedback);
-					block = encryptBlock(block, this.iv);
-
-					let plaintextByte = chunk[i] ^ block[0][0];
-					out[i] = plaintextByte;
-
-					// shift feedback
-					this.feedback = this.feedback.slice(1);
-					this.feedback[15] = chunk[i];
-				}
-				controller.enqueue(new Buffer(out));
+				controller.enqueue(new Buffer(encrypt2(this.feedback, chunk.inner)));
 			},
 		});
 	}
@@ -437,29 +423,20 @@ export class Decryptor {
 
 export class Encryptor {
 	private feedback: Uint8Array | null = null;
-	private iv: Uint8Array | null = null;
+	private roundkeys: Block[] | null = null;
 	constructor() {}
 
 	seed(iv: Uint8Array) {
-		this.iv = iv;
+		this.roundkeys = keygen(iv);
 		this.feedback = new Uint8Array(iv);
 	}
 
 	transform(chunk: Buffer): Buffer {
-		if (!this.feedback || !this.iv) return chunk;
+		if (!this.feedback || !this.roundkeys) return chunk;
 
-		let out = new Uint8Array(chunk.length);
-		for (let i = 0; i < chunk.length; i++) {
-			let block = arrayToBlock(this.feedback);
-			block = encryptBlock(block, this.iv);
+		feedback = this.feedback;
+		let out = encrypt(this.feedback, chunk.inner);
 
-			let ciphertextByte = chunk[i] ^ block[0][0];
-			out[i] = ciphertextByte;
-
-			// shift feedback
-			this.feedback = this.feedback.slice(1);
-			this.feedback[15] = ciphertextByte;
-		}
 		return new Buffer(out);
 	}
 }
