@@ -479,20 +479,20 @@ export function importKey(keyBytes: Uint8Array): Promise<CryptoKey> {
 			hash: "SHA-256",
 		},
 		true,
-		["sign"],
+		["sign"]
 	);
 }
 
 export function encryptMessage(
 	publicKey: CryptoKey,
-	message: Uint8Array,
+	message: Uint8Array
 ): Promise<ArrayBuffer> {
 	return window.crypto.subtle.encrypt(
 		{
 			name: "RSA-OAEP",
 		},
 		publicKey,
-		new Uint8Array(message),
+		new Uint8Array(message)
 	);
 }
 

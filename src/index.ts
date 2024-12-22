@@ -12,7 +12,7 @@ import {
 	offlineUUID,
 } from "./connection/crypto";
 import { handleSkinCape } from "./skins";
-import "./auth"
+import "./auth";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
 enum State {
@@ -143,7 +143,7 @@ export class EaglerProxy {
 		eaglerOut: BytesWriter,
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
-		public serverPort: number,
+		public serverPort: number
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
@@ -273,7 +273,7 @@ export class EaglerProxy {
 									0,
 									0,
 									canvas.width,
-									canvas.height,
+									canvas.height
 								).data;
 								this.eagler.write(new Buffer(new Uint8Array(pixels)));
 							};
@@ -322,7 +322,7 @@ export class EaglerProxy {
 									...new TextEncoder().encode(serverId),
 									...sharedSecret,
 									...publicKey.inner,
-								]),
+								])
 							);
 
 							let key = await crypto.subtle.importKey(
@@ -333,13 +333,13 @@ export class EaglerProxy {
 									hash: "SHA-256",
 								},
 								false,
-								["encrypt"],
+								["encrypt"]
 							);
 							let encrypedSecret = new Uint8Array(
-								await encryptMessage(key, sharedSecret),
+								await encryptMessage(key, sharedSecret)
 							);
 							let encryptedChallenge = new Uint8Array(
-								await encryptMessage(key, verifyToken.inner),
+								await encryptMessage(key, verifyToken.inner)
 							);
 
 							let postdata = {
