@@ -1,3 +1,5 @@
+import { reconnect, set_wisp_server } from "./connection/epoxy";
+
 export function createUI() {
 	const ui = `
       	<style>
@@ -286,9 +288,11 @@ export function createUI() {
 		wispInput.value = localStorage.getItem("wispcraft_wispurl") as string;
 	}
 
-	saveButton.onclick = () => {
+	saveButton.onclick = async () => {
 		const value = wispInput.value;
 		localStorage.setItem("wispcraft_wispurl", value);
+        set_wisp_server(value)
+        await reconnect();
 	};
 
 	settingsTab.onclick = () => {
