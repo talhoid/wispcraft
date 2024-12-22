@@ -301,17 +301,22 @@ export async function joinServer(
 	digest: string,
 	uuid: string,
 ) {
-	const res = await fetch("https://api.minecraftservices.com/minecraft/join", {
-		headers: {
-			Authorization: `Bearer ${mcToken}`,
-			"Content-Type": "application/json",
+	const res = await fetch(
+		"https://sessionserver.mojang.com/session/minecraft/join",
+		{
+			headers: {
+				"Content-Type": "application/json",
+			},
+			method: "POST",
+			body: JSON.stringify({
+				selectedProfile: uuid,
+				serverId: digest,
+				accessToken: mcToken,
+			}),
 		},
-		method: "POST",
-		body: JSON.stringify({
-			serverAddress: digest,
-			profileId: uuid,
-			profileName: "name",
-		}),
-	});
+	);
+	console.log(res.status);
+	console.log(await res.text());
 }
 window["deviceCodeAuth"] = deviceCodeAuth;
+window["minecraftAuth"] = minecraftAuth;

@@ -4,15 +4,17 @@ import { makeFakeWebSocket } from "./connection/fakewebsocket";
 import {
 	bytesToUuid,
 	Decryptor,
-	encryptMessage,
 	Encryptor,
-	importKey,
+	encryptRSA,
+	loadKey,
 	makeSharedSecret,
 	mchash,
 	offlineUUID,
 } from "./connection/crypto";
 import { handleSkinCape } from "./skins";
-import "./auth"
+import "./auth";
+import { joinServer } from "./auth";
+import * as rsa from "micro-rsa-dsa-dh/rsa.js";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
 enum State {
@@ -317,37 +319,21 @@ export class EaglerProxy {
 							let verifyToken = packet.take(packet.readVarInt());
 
 							let sharedSecret = makeSharedSecret();
-							let digest = await mchash(
-								new Uint8Array([
-									...new TextEncoder().encode(serverId),
-									...sharedSecret,
-									...publicKey.inner,
-								]),
+							let digest = await mchash(new Uint8Array([...sharedSecret]));
+
+							const [modulus, exponent] = await loadKey(publicKey.inner);
+							let encrypedSecret = encryptRSA(sharedSecret, modulus, exponent);
+							let encryptedChallenge = encryptRSA(
+								verifyToken.inner,
+								modulus,
+								exponent,
 							);
 
-							let key = await crypto.subtle.importKey(
-								"spki",
-								new Uint8Array(publicKey.inner).buffer,
-								{
-									name: "RSA-OAEP",
-									hash: "SHA-256",
-								},
-								false,
-								["encrypt"],
+							await joinServer(
+								"my_token_lol",
+								digest,
+								"4f42dca405d24332a8b774845109ad7a",
 							);
-							let encrypedSecret = new Uint8Array(
-								await encryptMessage(key, sharedSecret),
-							);
-							let encryptedChallenge = new Uint8Array(
-								await encryptMessage(key, verifyToken.inner),
-							);
-
-							let postdata = {
-								accessToken: "...",
-								selectedProfile: "uuid goes here",
-								serverId: digest,
-							};
-							// r58 send the post here
 
 							let response = new Packet(Serverbound.EncryptionResponse);
 							response.writeVarInt(encrypedSecret.length);
@@ -357,8 +343,8 @@ export class EaglerProxy {
 							console.log("Sending encryption response");
 							this.net.write(response);
 
-							this.encryptor.seed(sharedSecret);
-							this.decryptor.seed(sharedSecret);
+							// this.encryptor.seed(sharedSecret);
+							// this.decryptor.seed(sharedSecret);
 						}
 						break;
 					default:

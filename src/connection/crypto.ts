@@ -470,29 +470,86 @@ export function makeSharedSecret(): Uint8Array {
 	return array;
 }
 
-export function importKey(keyBytes: Uint8Array): Promise<CryptoKey> {
-	return crypto.subtle.importKey(
-		"pkcs8",
+// returns `n` and `e` as bigints given a public key
+export async function loadKey(keyBytes: Uint8Array): Promise<[bigint, bigint]> {
+	let key = await crypto.subtle.importKey(
+		"spki",
 		new Uint8Array(keyBytes).buffer,
 		{
-			name: "RSA-PSS",
+			name: "RSA-OAEP",
 			hash: "SHA-256",
 		},
 		true,
-		["sign"],
+		["encrypt"],
 	);
-}
 
-export function encryptMessage(
-	publicKey: CryptoKey,
-	message: Uint8Array,
-): Promise<ArrayBuffer> {
-	return window.crypto.subtle.encrypt(
-		{
-			name: "RSA-OAEP",
-		},
-		publicKey,
-		new Uint8Array(message),
+	// jwk provides the magics as json
+	let jwk = await crypto.subtle.exportKey("jwk", key);
+
+	// random stackoverflow function to get the bigints
+	function base64urlToBigInt(base64url: string) {
+		const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
+		const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+		const base64Padded = base64 + padding;
+		const binaryString = atob(base64Padded);
+		let bigint = 0n;
+		for (let i = 0; i < binaryString.length; i++) {
+			bigint = (bigint << 8n) + BigInt(binaryString.charCodeAt(i));
+		}
+		return bigint;
+	}
+
+	return [base64urlToBigInt(jwk.n!), base64urlToBigInt(jwk.e!)];
+}
+export function encryptRSA(data: Uint8Array, n: bigint, e: bigint): Uint8Array {
+	const modExp = (base, exp, mod) => {
+		let result = 1n;
+		base = base % mod;
+		while (exp > 0n) {
+			if (exp % 2n === 1n) {
+				result = (result * base) % mod;
+			}
+			exp = exp >> 1n;
+			base = (base * base) % mod;
+		}
+		return result;
+	};
+	// thank you jippity
+	const pkcs1v15Pad = (messageBytes: Uint8Array, n: bigint) => {
+		const messageLength = messageBytes.length;
+		const nBytes = Math.ceil(n.toString(16).length / 2);
+
+		if (messageLength > nBytes - 11) {
+			throw new Error("Message too long for RSA encryption");
+		}
+
+		const paddingLength = nBytes - messageLength - 3;
+		const padding = Array(paddingLength).fill(0xff);
+
+		return BigInt(
+			"0x" +
+				[
+					"00",
+					"02",
+					...padding.map((byte) => byte.toString(16).padStart(2, "0")),
+					"00",
+					...Array.from(messageBytes).map((byte: any) =>
+						byte.toString(16).padStart(2, "0"),
+					),
+				].join(""),
+		);
+	};
+	const paddedMessage = pkcs1v15Pad(data, n);
+	let int = modExp(paddedMessage, e, n);
+
+	let hex = int.toString(16);
+	if (hex.length % 2) {
+		hex = "0" + hex;
+	}
+
+	// ????
+	return new Uint8Array(
+		Array.from(hex.match(/.{2}/g) || []).map((byte) => parseInt(byte, 16)),
 	);
 }
 
