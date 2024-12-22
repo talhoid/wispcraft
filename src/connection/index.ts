@@ -68,18 +68,20 @@ export class Connection {
 	}
 
 	async forward(connectcallback: () => void) {
-		const dns = await fetch(`https://cloudflare-dns.com/dns-query?name=_minecraft._tcp.${this.url.hostname}&type=SRV`, {
-			headers: {
-			  'Accept': 'application/dns-json'
+		try {
+			const dns = await fetch(`https://cloudflare-dns.com/dns-query?name=_minecraft._tcp.${this.url.hostname}&type=SRV`, {
+				headers: {
+				'Accept': 'application/dns-json'
+				}
+			});
+			const dnsResponse = await dns.json();
+			if (dnsResponse.Answer?.length) {
+				const data = dnsResponse.Answer[0].data.split(" ")
+				const port = data[2]
+				const hostname = data[3]
+				this.url = new URL(`java://${hostname}:${port}`)
 			}
-		});
-		const dnsResponse = await dns.json();
-		if (dnsResponse.Status === 0) {
-			const data = dnsResponse.Answer[0].data.split(" ")
-			const port = data[2]
-			const hostname = data[3]
-			this.url = new URL(`java://${hostname}:${port}`)
-		}
+		} catch {}
 		const conn = await connect_tcp(this.url.host);
 		connectcallback();
 		const writer = bufferWriter(conn.write.getWriter());
