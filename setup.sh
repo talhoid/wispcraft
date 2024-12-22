@@ -1,6 +1,6 @@
 #!/bin/sh
 
-npm ci
+npm i
 npm run build
 
 cd dist
