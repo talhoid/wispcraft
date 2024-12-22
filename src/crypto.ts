@@ -331,100 +331,69 @@ function keygen(iv: Uint8Array): Block[] {
 	return keys;
 }
 
-function encrypt(iv: Uint8Array, data: Uint8Array) {
-	const blocks: Block[] = [];
-	let numMissing = 0;
-	for (let i = 0; i < data.length; i += 16) {
-		numMissing = 16 - (data.length - i);
+function encryptBlock(block: Block, key: Uint8Array): Block {
+	const roundKeys = keygen(key);
 
-		let block = <Block>Array(4);
-		for (let row = 0; row < 4; row++) {
-			let column: Column = [0, 0, 0, 0];
-			for (let col = 0; col < 4; col++) {
-				column[col] = data[i + row * 4 + col] || numMissing;
-			}
-			block[row] = column;
-		}
-
-		blocks.push(block);
-	}
-
-	if (numMissing === 0) {
-		blocks.push(
-			Array(4)
-				.fill(0)
-				.map(() => Array(4).fill(0x10)) as Block,
-		);
-	}
-
-	const encryptedBlocks: Block[] = [];
-
-	const blockCipher = new Uint8Array(iv);
-
-	for (let block of blocks) {
-		const roundKeys = keygen(blockCipher);
-
-		let newblock = addroundkey(block, roundKeys[0]);
-		for (let i = 1; i < 10; i++) {
-			newblock = subwords(newblock);
-			newblock = shiftrows(newblock);
-			newblock = mixcolumns(newblock);
-			newblock = addroundkey(newblock, roundKeys[i]);
-		}
+	let newblock = addroundkey(block, roundKeys[0]);
+	for (let i = 1; i < 10; i++) {
 		newblock = subwords(newblock);
 		newblock = shiftrows(newblock);
-		newblock = addroundkey(newblock, roundKeys[10]);
-		encryptedBlocks.push(newblock);
-
-		for (let i = 0; i < 4; i++) {
-			for (let j = 0; j < 4; j++) {
-				blockCipher[i * 4 + j] = newblock[j][i];
-			}
-		}
+		newblock = mixcolumns(newblock);
+		newblock = addroundkey(newblock, roundKeys[i]);
 	}
+	newblock = subwords(newblock);
+	newblock = shiftrows(newblock);
+	newblock = addroundkey(newblock, roundKeys[10]);
 
-	return encryptedBlocks.flat(3);
+	return newblock;
 }
 
-function decrypt(iv: Uint8Array, data: Uint8Array) {
-	const blocks: Block[] = [];
-	for (let i = 0; i < data.length; i += 16) {
-		let block = <Block>Array(4);
-		for (let row = 0; row < 4; row++) {
-			let column: Column = [0, 0, 0, 0];
-			for (let col = 0; col < 4; col++) {
-				column[col] = data[i + row * 4 + col];
-			}
-			block[row] = column;
-		}
+function arrayToBlock(array: Uint8Array): Block {
+	let block = [Array(4), Array(4), Array(4), Array(4)] as Block;
+	for (let i = 0; i < 16; i++) {
+		block[i % 4][Math.floor(i / 4)] = array[i];
+	}
+	return block;
+}
 
-		blocks.push(block);
+// using cfb-8 mode
+function encrypt(iv: Uint8Array, data: Uint8Array): Uint8Array {
+	// iv is 128 bits
+	let feedback = new Uint8Array(iv);
+	const out: number[] = [];
+
+	for (let i = 0; i < data.length; i++) {
+		let block = arrayToBlock(feedback);
+		block = encryptBlock(block, iv);
+
+		let ciphertextByte = data[i] ^ block[0][0];
+		out.push(ciphertextByte);
+
+		// shift feedback
+		feedback = feedback.slice(1);
+		feedback[15] = ciphertextByte;
 	}
 
-	const decryptedBlocks: Block[] = [];
-	for (let block of blocks) {
-		const roundKeys = keygen(iv);
+	return new Uint8Array(out);
+}
 
-		let newblock = addroundkey(block, roundKeys[10]);
-		newblock = shiftrows(newblock, true);
-		newblock = subwords(newblock, true);
-		for (let i = 9; i > 0; i--) {
-			newblock = addroundkey(newblock, roundKeys[i]);
-			newblock = mixcolumns(newblock, true);
-			newblock = shiftrows(newblock, true);
-			newblock = subwords(newblock, true);
-		}
-		newblock = addroundkey(newblock, roundKeys[0]);
-		decryptedBlocks.push(newblock);
+function decrypt(iv: Uint8Array, data: Uint8Array): Uint8Array {
+	let feedback = new Uint8Array(iv);
+	const out: number[] = [];
+
+	for (let i = 0; i < data.length; i++) {
+		let block = arrayToBlock(feedback);
+		block = encryptBlock(block, iv);
+
+		let plaintextByte = data[i] ^ block[0][0];
+		out.push(plaintextByte);
+
+		// shift feedback
+		feedback = feedback.slice(1);
+		feedback[15] = data[i];
 	}
 
-	let ret = decryptedBlocks.flat(3);
-	let missing = ret[ret.length - 1];
-	if (missing < 16) {
-		ret = ret.slice(0, -missing);
-	}
-
-	return new Uint8Array(ret);
+	return new Uint8Array(out);
 }
 
 function makeSharedSecret(): Uint8Array {
