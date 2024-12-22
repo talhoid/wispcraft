@@ -1,3 +1,5 @@
+import { Buffer } from "./buffer";
+
 function md5(inputString) {
 	function rh(n) {
 		var bytes: any = [];
@@ -396,6 +398,72 @@ function decrypt(iv: Uint8Array, data: Uint8Array): Uint8Array {
 	return new Uint8Array(out);
 }
 
+export class Decryptor {
+	private feedback: Uint8Array | null = null;
+	private iv: Uint8Array | null = null;
+
+	transform: TransformStream<Buffer>;
+
+	seed(iv: Uint8Array) {
+		this.iv = iv;
+		this.feedback = new Uint8Array(iv);
+	}
+
+	constructor() {
+		this.transform = new TransformStream<Buffer>({
+			transform: (chunk, controller) => {
+				if (!this.feedback || !this.iv) {
+					controller.enqueue(chunk);
+					return;
+				}
+
+				let out = new Uint8Array(chunk.length);
+				for (let i = 0; i < chunk.length; i++) {
+					let block = arrayToBlock(this.feedback);
+					block = encryptBlock(block, this.iv);
+
+					let plaintextByte = chunk[i] ^ block[0][0];
+					out[i] = plaintextByte;
+
+					// shift feedback
+					this.feedback = this.feedback.slice(1);
+					this.feedback[15] = chunk[i];
+				}
+				controller.enqueue(new Buffer(out));
+			},
+		});
+	}
+}
+
+export class Encryptor {
+	private feedback: Uint8Array | null = null;
+	private iv: Uint8Array | null = null;
+	constructor() {}
+
+	seed(iv: Uint8Array) {
+		this.iv = iv;
+		this.feedback = new Uint8Array(iv);
+	}
+
+	transform(chunk: Buffer): Buffer {
+		if (!this.feedback || !this.iv) return chunk;
+
+		let out = new Uint8Array(chunk.length);
+		for (let i = 0; i < chunk.length; i++) {
+			let block = arrayToBlock(this.feedback);
+			block = encryptBlock(block, this.iv);
+
+			let ciphertextByte = chunk[i] ^ block[0][0];
+			out[i] = ciphertextByte;
+
+			// shift feedback
+			this.feedback = this.feedback.slice(1);
+			this.feedback[15] = ciphertextByte;
+		}
+		return new Buffer(out);
+	}
+}
+
 function makeSharedSecret(): Uint8Array {
 	const array = new Uint8Array(16);
 	crypto.getRandomValues(array);
@@ -445,8 +513,3 @@ async function mchash(input: Uint8Array) {
 	}
 	return out;
 }
-
-// @ts-ignore
-window.encrypt = encrypt;
-// @ts-ignore
-window.decrypt = decrypt;

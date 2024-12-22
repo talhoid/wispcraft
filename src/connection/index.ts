@@ -81,10 +81,10 @@ export class Connection {
 				let b = Buffer.new();
 				b.writeVarInt(pk.length);
 				b.extend(pk);
-				return b;
+				return impl.encryptor.transform(b);
 			}).getWriter(),
 			this.url.hostname,
-			this.url.port ? parseInt(this.url.port) : 25565
+			this.url.port ? parseInt(this.url.port) : 25565,
 		);
 
 		// epoxy -> process -> (hopefully) eagler task
@@ -92,9 +92,10 @@ export class Connection {
 			const reader = eagerlyPoll<Buffer>(
 				conn.read
 					.pipeThrough(bufferTransformer())
+					.pipeThrough(impl.decryptor.transform)
 					.pipeThrough(lengthTransformer())
 					.pipeThrough(impl.decompressor.transform),
-				100
+				100,
 			).getReader();
 
 			while (true) {

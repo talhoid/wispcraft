@@ -1,7 +1,7 @@
 import { Buffer } from "./buffer";
 import { BytesWriter, Compressor, Decompressor } from "./connection/framer";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
-import { bytesToUuid, offlineUUID } from "./crypto";
+import { bytesToUuid, Decryptor, Encryptor, offlineUUID } from "./crypto";
 import { handleSkinCape } from "./skins";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
@@ -123,6 +123,8 @@ export class EaglerProxy {
 	handshook: boolean = false;
 	decompressor = new Decompressor();
 	compressor = new Compressor();
+	decryptor = new Decryptor();
+	encryptor = new Encryptor();
 
 	state: State = State.Handshaking;
 
@@ -136,7 +138,7 @@ export class EaglerProxy {
 		eaglerOut: BytesWriter,
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
-		public serverPort: number
+		public serverPort: number,
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
@@ -266,7 +268,7 @@ export class EaglerProxy {
 									0,
 									0,
 									canvas.width,
-									canvas.height
+									canvas.height,
 								).data;
 								this.eagler.write(new Buffer(new Uint8Array(pixels)));
 							};
