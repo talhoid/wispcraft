@@ -36,7 +36,7 @@ export async function getMicrosoftToken(): Promise<string> {
 	return exchangeCodeForToken(code);
 }
 
-export async function deviceCodeAuth(): Promise<string> {
+export async function deviceCodeAuth() { // TOOD: Type
 	const deviceCodeRes = await fetch(
 		"https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode",
 		{
@@ -65,50 +65,48 @@ export async function deviceCodeAuth(): Promise<string> {
 	if (!device_code || !user_code || !verification_uri) {
 		throw new Error("Failed to obtain device code information.");
 	}
+	const tokenGenerator = (async () => {
+		// poll the token endpoint until the user completes the authentication
+		let tokenData: OAuthResponse | null = null;
 
-	console.log(
-		`Please go to ${verification_uri} and enter the code: ${user_code}`,
-	);
-
-	// poll the token endpoint until the user completes the authentication
-	let tokenData: OAuthResponse | null = null;
-
-	interface TokenPollingResponse {
-		access_token?: string;
-		error?: string;
-	}
-
-	while (!tokenData?.access_token) {
-		const tokenRes = await fetch(
-			"https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-				},
-				body: new URLSearchParams({
-					client_id: CLIENT_ID,
-					grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-					device_code: device_code,
-				}).toString(),
-			},
-		);
-
-		const pollingResponse: TokenPollingResponse = await tokenRes.json();
-
-		if (pollingResponse.access_token) {
-			tokenData = {
-				access_token: pollingResponse.access_token,
-			} as OAuthResponse;
-		} else if (pollingResponse.error === "authorization_pending") {
-			// user has not completed the authentication yet; wait for the interval
-			await new Promise((resolve) => setTimeout(resolve, interval * 1000));
-		} else {
-			throw new Error(`Polling failed with error: ${pollingResponse.error}`);
+		interface TokenPollingResponse {
+			access_token?: string;
+			error?: string;
 		}
-	}
 
-	return tokenData.access_token;
+		while (!tokenData?.access_token) {
+			const tokenRes = await fetch(
+				"https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
+					body: new URLSearchParams({
+						client_id: CLIENT_ID,
+						grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+						device_code: device_code,
+					}).toString(),
+				},
+			);
+
+			const pollingResponse: TokenPollingResponse = await tokenRes.json();
+
+			if (pollingResponse.access_token) {
+				tokenData = {
+					access_token: pollingResponse.access_token,
+				} as OAuthResponse;
+			} else if (pollingResponse.error === "authorization_pending") {
+				// user has not completed the authentication yet; wait for the interval
+				await new Promise((resolve) => setTimeout(resolve, interval * 1000));
+			} else {
+				throw new Error(`Polling failed with error: ${pollingResponse.error}`);
+			}
+		}
+
+		return tokenData.access_token;
+	});
+	return {url: verification_uri, code: user_code, token: tokenGenerator()};
 }
 
 async function startOAuthFlow(): Promise<{ code: string }> {
@@ -296,3 +294,4 @@ export async function minecraftAuth(msToken: string): Promise<string> {
 	const xstsInfo = await xstsAuth(xboxToken);
 	return mcAuth(xstsInfo.token, xstsInfo.userHash);
 }
+window['deviceCodeAuth'] = deviceCodeAuth
