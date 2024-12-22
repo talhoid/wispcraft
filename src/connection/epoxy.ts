@@ -29,7 +29,7 @@ async function create() {
 	}
 }
 
-export async function fetch(url: string, opts?: any): Promise<Response> {
+export async function epoxyFetch(url: string, opts?: any): Promise<Response> {
 	await create();
 
 	// create() inits epoxy

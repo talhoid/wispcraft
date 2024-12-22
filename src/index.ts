@@ -14,7 +14,6 @@ import {
 import { handleSkinCape } from "./skins";
 import "./auth";
 import { joinServer } from "./auth";
-import * as rsa from "micro-rsa-dsa-dh/rsa.js";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
 enum State {

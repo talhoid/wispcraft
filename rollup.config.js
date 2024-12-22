@@ -6,12 +6,14 @@ import typescript from "rollup-plugin-typescript2";
 import { execSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import dataUri from "@rollup/plugin-data-uri";
+import url from "@rollup/plugin-url";
 
 const pkg = JSON.parse(await readFile("package.json"));
 
 const commonPlugins = () => [
 	typescript(),
 	dataUri(),
+	url({ limit: 9999999999999999 }),
 	terser(),
 	nodeResolve({
 		browser: true,

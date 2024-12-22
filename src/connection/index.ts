@@ -10,7 +10,6 @@ import {
 	lengthTransformer,
 	writeTransform,
 } from "./framer";
-import type { EpoxyIoStream } from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
 
 function link<T>(): [ReadableStream<T>, WritableStream<T>] {
 	let readController: ReadableStreamDefaultController<T>;
@@ -84,7 +83,7 @@ export class Connection {
 				return impl.encryptor.transform(b);
 			}).getWriter(),
 			this.url.hostname,
-			this.url.port ? parseInt(this.url.port) : 25565,
+			this.url.port ? parseInt(this.url.port) : 25565
 		);
 
 		// epoxy -> process -> (hopefully) eagler task
@@ -95,7 +94,7 @@ export class Connection {
 					.pipeThrough(impl.decryptor.transform)
 					.pipeThrough(lengthTransformer())
 					.pipeThrough(impl.decompressor.transform),
-				100,
+				100
 			).getReader();
 
 			while (true) {

@@ -1,5 +1,5 @@
 import { Buffer } from "./buffer";
-import { fetch } from "./connection/epoxy";
+import { epoxyFetch } from "./connection/epoxy";
 import { bytesToUuid } from "./connection/crypto";
 
 const urlCache = {};
@@ -20,7 +20,7 @@ interface Tex {
 }
 
 async function getTextureDataByProfileResponse(
-	resp: Response,
+	resp: Response
 ): Promise<TexUrls> {
 	const response = await resp.json();
 	const parsed = JSON.parse(atob(response.properties[0].value));
@@ -34,18 +34,18 @@ async function getTextureDataByProfileResponse(
 async function funkyFetch(
 	uuid: string,
 	fallbackUrl: string,
-	isCape: boolean,
+	isCape: boolean
 ): Promise<Response> {
 	if (!uuid || fetchMode2 == 2) {
 		try {
-			return await fetch(fallbackUrl);
+			return await epoxyFetch(fallbackUrl);
 		} catch (e) {
 			return new Response();
 		}
 	} else if (fetchMode2 == 1) {
 		try {
-			return fetch(
-				"https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid,
+			return epoxyFetch(
+				"https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid
 			);
 		} catch (e) {
 			fetchMode2 = 1;
@@ -54,7 +54,7 @@ async function funkyFetch(
 	}
 	try {
 		return window.fetch(
-			"https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid,
+			"https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid
 		);
 	} catch (e) {
 		fetchMode2 = 1;
@@ -77,7 +77,7 @@ async function funnyFetch(url: string): Promise<Tex> {
 			if (fetchMode == 0) {
 				fat = await window.fetch(prefix + uuid);
 			} else {
-				fat = await fetch(prefix + uuid);
+				fat = await epoxyFetch(prefix + uuid);
 			}
 			const texData = await getTextureDataByProfileResponse(fat);
 			url = texData.skin;
@@ -112,7 +112,7 @@ function makeImageData(width: number, height: number): ImageData {
 		0,
 		0,
 		width,
-		height,
+		height
 	);
 }
 
@@ -141,7 +141,7 @@ function copyRawPixels(
 	sx1,
 	sy1,
 	sx2,
-	sy2,
+	sy2
 ) {
 	let srcX = dx1,
 		srcY = sy1,
@@ -200,7 +200,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			4,
 			16,
 			8,
-			20,
+			20
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -212,7 +212,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			8,
 			16,
 			12,
-			20,
+			20
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -224,7 +224,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			8,
 			20,
 			12,
-			32,
+			32
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -236,7 +236,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			4,
 			20,
 			8,
-			32,
+			32
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -248,7 +248,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			0,
 			20,
 			4,
-			32,
+			32
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -260,7 +260,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			12,
 			20,
 			16,
-			32,
+			32
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -272,7 +272,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			44,
 			16,
 			48,
-			20,
+			20
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -284,7 +284,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			48,
 			16,
 			52,
-			20,
+			20
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -296,7 +296,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			48,
 			20,
 			52,
-			32,
+			32
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -308,7 +308,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			44,
 			20,
 			48,
-			32,
+			32
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -320,7 +320,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			40,
 			20,
 			44,
-			32,
+			32
 		);
 		imageOut = await copyRawPixels(
 			jimpImage,
@@ -332,7 +332,7 @@ async function toEaglerSkin(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
 			52,
 			20,
 			56,
-			32,
+			32
 		);
 
 		jimpImage = imageOut;
@@ -396,7 +396,7 @@ async function lookUpInCache(url: string): Promise<Tex> {
 
 export async function handleSkinCape(
 	isCapeNotSkin: boolean,
-	packet: Buffer,
+	packet: Buffer
 ): Promise<Buffer> {
 	const id = packet.take(1).get(0);
 	if (!isCapeNotSkin) {
@@ -419,7 +419,7 @@ export async function handleSkinCape(
 			const part = packet.take(16);
 			const fard = packet.take(2);
 			const url = new TextDecoder().decode(
-				packet.take((fard.get(0) << 8) | fard.get(1)).inner,
+				packet.take((fard.get(0) << 8) | fard.get(1)).inner
 			);
 			if (new URL(url).hostname != "textures.minecraft.net") {
 				return Buffer.new();

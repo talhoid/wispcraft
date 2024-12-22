@@ -482,7 +482,6 @@ export async function loadKey(keyBytes: Uint8Array): Promise<[bigint, bigint]> {
 		true,
 		["encrypt"],
 	);
-
 	// jwk provides the magics as json
 	let jwk = await crypto.subtle.exportKey("jwk", key);
 
