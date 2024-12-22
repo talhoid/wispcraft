@@ -565,7 +565,9 @@ export async function mchash(input: Uint8Array) {
 	}
 
 	for (let i = 0; i < buf.length; i++) {
-		out += buf[i].toString(16);
+		let c = buf[i].toString(16);
+		if (c.length == 1) c = "0" + c;
+		out += c;
 	}
 	return out;
 }
