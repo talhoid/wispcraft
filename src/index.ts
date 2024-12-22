@@ -125,6 +125,21 @@ function chatToLegacyString(chat: ChatSchema) {
 	return str;
 }
 
+if (!("mc_token" in window)) {
+	window["mc_token"] = prompt("Enter Minecraft token:");
+}
+let msUsername: string, msUuid: string, msToken: string = "";
+if ("mc_token" in window) {
+	msToken = window["mc_token"] as string;
+	delete window["mc_token"];
+	getProfile(msToken).then((p) => {
+		msUsername = p.name;
+		msUuid = p.id;
+	}).catch((e) => {
+		msToken = "";
+	});
+}
+
 export class EaglerProxy {
 	loggedIn: boolean = false;
 	handshook: boolean = false;
@@ -162,13 +177,13 @@ export class EaglerProxy {
 						return;
 					case Serverbound.EAG_RequestLogin:
 						let username = packet.readString();
-						this.username = username;
+						this.username = msUsername ? msUsername : username;
 
 						let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
 						let usernameEnc = new TextEncoder().encode(username);
 						fakelogin.writeBytes([usernameEnc.length]);
 						fakelogin.extend(new Buffer(usernameEnc));
-						fakelogin.writeBytes(offlineUUID(username));
+						fakelogin.writeBytes(msUuid ? Array.from(msUuid.match(/.{2}/g) || []).map((byte) => parseInt(byte as string, 16)) : offlineUUID(username));
 						await this.eagler.write(fakelogin);
 						return;
 					case Serverbound.EAG_FinishLogin:
@@ -329,7 +344,7 @@ export class EaglerProxy {
 								exponent,
 							);
 
-							await joinServer(window["mc_token"], digest, (await getProfile(window["mc_token"])).id);
+							await joinServer(msToken, digest, msUuid);
 
 							let response = new Packet(Serverbound.EncryptionResponse);
 							response.writeVariableData(new Buffer(encrypedSecret));
