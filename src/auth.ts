@@ -296,3 +296,22 @@ export async function minecraftAuth(msToken: string): Promise<string> {
 	const xstsInfo = await xstsAuth(xboxToken);
 	return mcAuth(xstsInfo.token, xstsInfo.userHash);
 }
+
+export async function joinServer(
+	mcToken: string,
+	digest: string,
+	uuid: string,
+) {
+	const res = await fetch("https://api.minecraftservices.com/minecraft/join", {
+		headers: {
+			Authorization: `Bearer ${mcToken}`,
+			"Content-Type": "application/json",
+		},
+		method: "POST",
+		body: JSON.stringify({
+			serverAddress: digest,
+			profileId: uuid,
+			profileName: "name",
+		}),
+	});
+}

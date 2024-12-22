@@ -316,7 +316,7 @@ export class EaglerProxy {
 							let verifyToken = packet.take(packet.readVarInt());
 
 							let sharedSecret = makeSharedSecret();
-							let digest = mchash(
+							let digest = await mchash(
 								new Uint8Array([
 									...new TextEncoder().encode(serverId),
 									...sharedSecret,
@@ -324,7 +324,16 @@ export class EaglerProxy {
 								]),
 							);
 
-							let key = await importKey(publicKey.inner);
+							let key = await crypto.subtle.importKey(
+								"spki",
+								new Uint8Array(publicKey.inner).buffer,
+								{
+									name: "RSA-OAEP",
+									hash: "SHA-256",
+								},
+								false,
+								["encrypt"],
+							);
 							let encrypedSecret = new Uint8Array(
 								await encryptMessage(key, sharedSecret),
 							);
@@ -344,6 +353,7 @@ export class EaglerProxy {
 							response.extend(new Buffer(encrypedSecret));
 							response.writeVarInt(encryptedChallenge.length);
 							response.extend(new Buffer(encryptedChallenge));
+							console.log("Sending encryption response");
 							this.net.write(response);
 
 							this.encryptor.seed(sharedSecret);

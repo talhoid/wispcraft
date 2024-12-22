@@ -57,7 +57,6 @@ export class Buffer {
 
 	readString(): string {
 		const len = this.readVarInt();
-		if (!len) throw new Error("data too small");
 		const ret = new TextDecoder().decode(this.take(len).inner);
 		return ret;
 	}
