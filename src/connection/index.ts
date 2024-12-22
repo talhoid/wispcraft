@@ -76,8 +76,8 @@ export class Connection {
 		const dnsResponse = await dns.json();
 		if (dnsResponse.Status === 0) {
 			const data = dnsResponse.Answer[0].data.split(" ")
-			const port = data[3]
-			const hostname = data[4]
+			const port = data[2]
+			const hostname = data[3]
 			this.url = new URL(`java://${hostname}:${port}`)
 		}
 		const conn = await connect_tcp(this.url.host);
