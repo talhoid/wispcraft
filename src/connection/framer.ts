@@ -172,6 +172,3 @@ export function eagerlyPoll<T>(
 		new CountQueuingStrategy({ highWaterMark: buffer })
 	);
 }
-
-// @ts-ignore
-window.lengthTransformer = lengthTransformer;

@@ -14,6 +14,7 @@ import {
 import { handleSkinCape } from "./skins";
 import "./auth";
 import { joinServer } from "./auth";
+import { epoxyFetch } from "./connection/epoxy";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
 enum State {
@@ -156,13 +157,11 @@ export class EaglerProxy {
 			case State.Handshaking:
 				switch (packet.readVarInt()) {
 					case Serverbound.EAG_ClientVersion:
-						console.log("Client version request");
 						// eagler specific packet, return server version 3
 						this.eagler.write(fakever);
 						return;
 					case Serverbound.EAG_RequestLogin:
 						let username = packet.readString();
-						console.log("User " + username + " requested login");
 						this.username = username;
 
 						let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
@@ -175,6 +174,8 @@ export class EaglerProxy {
 					case Serverbound.EAG_FinishLogin:
 						// this says finish login but it only finishes the handshake stage since eagler
 						// now send the real login packets
+						this.state = State.Login;
+
 						let handshake = new Packet(Serverbound.Handshake);
 						handshake.writeVarInt(MINECRAFT_PROTOCOL_VERSION);
 						handshake.writeString(this.serverAddress);
@@ -185,8 +186,6 @@ export class EaglerProxy {
 						let loginstart = new Packet(Serverbound.LoginStart);
 						loginstart.writeString(this.username);
 						this.net.write(loginstart);
-
-						this.state = State.Login;
 						break;
 				}
 				break;
@@ -235,7 +234,6 @@ export class EaglerProxy {
 				switch (pk) {
 					case Clientbound.StatusResponse:
 						let json = packet.readString();
-						console.log("Status response: " + json);
 						let body = JSON.parse(json);
 						let response: any = {
 							name: "Java Server",
@@ -285,21 +283,18 @@ export class EaglerProxy {
 						break;
 					case Clientbound.PongResponse:
 						let time = packet.readLong();
-						console.log("Pong response: " + time);
 						break;
 					default:
 						console.error("Unhandled status packet: " + pk);
 				}
 				break;
 			case State.Login:
-				console.log("Login packet: " + pk);
 				switch (pk) {
 					case Clientbound.Disconnect:
 						console.error("Disconnect during login: " + packet.readString());
 						// TODO forward to eagler
 						break;
 					case Clientbound.LoginSuccess:
-						console.log("Login success");
 						this.realUuid = packet.readString();
 						this.state = State.Play;
 						let eag = new Packet(Clientbound.EAG_FinishLogin);
@@ -307,18 +302,17 @@ export class EaglerProxy {
 						break;
 					case Clientbound.SetCompression:
 						let threshold = packet.readVarInt()!;
-						console.error("Set compression threshold: " + threshold);
 						this.decompressor.compressionThresh = threshold;
 						this.compressor.compressionThresh = threshold;
 						break;
 					case Clientbound.EncryptionRequest:
 						{
-							let serverId = packet.readString();
-							let publicKey = packet.take(packet.readVarInt());
-							let verifyToken = packet.take(packet.readVarInt());
+							packet.readString();
+							let publicKey = packet.readVariableData();
+							let verifyToken = packet.readVariableData();
 
 							let sharedSecret = makeSharedSecret();
-							let digest = await mchash(new Uint8Array([...sharedSecret]));
+							let digest = await mchash(new Uint8Array([...sharedSecret, ...publicKey.inner]));
 
 							const [modulus, exponent] = await loadKey(publicKey.inner);
 							let encrypedSecret = encryptRSA(sharedSecret, modulus, exponent);
@@ -329,21 +323,18 @@ export class EaglerProxy {
 							);
 
 							await joinServer(
-								"my_token_lol",
+								"token_here",
 								digest,
-								"4f42dca405d24332a8b774845109ad7a",
+								"uuid_no_dashes_here",
 							);
 
 							let response = new Packet(Serverbound.EncryptionResponse);
-							response.writeVarInt(encrypedSecret.length);
-							response.extend(new Buffer(encrypedSecret));
-							response.writeVarInt(encryptedChallenge.length);
-							response.extend(new Buffer(encryptedChallenge));
-							console.log("Sending encryption response");
-							this.net.write(response);
+							response.writeVariableData(new Buffer(encrypedSecret));
+							response.writeVariableData(new Buffer(encryptedChallenge));
+							await this.net.write(response);
 
-							// this.encryptor.seed(sharedSecret);
-							// this.decryptor.seed(sharedSecret);
+							this.encryptor.seed(sharedSecret);
+							this.decryptor.seed(sharedSecret);
 						}
 						break;
 					default:
@@ -394,6 +385,15 @@ export class EaglerProxy {
 }
 
 window.WebSocket = makeFakeWebSocket();
+
+const nativeFetch = fetch;
+window.fetch = async function(url: RequestInfo | URL, init?: RequestInit) {
+	try {
+		return await nativeFetch(url, init);
+	} catch (e) {
+		return await epoxyFetch("" + url, init);
+	}
+};
 
 let eagoptions;
 const settings = { addr: "settings", name: "Wispcraft Settings" };

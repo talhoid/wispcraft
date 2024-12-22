@@ -1,4 +1,5 @@
 import { Buffer } from "../buffer";
+import { CFBEncryptor, CFBDecryptor } from "aes-ts";
 
 function md5(inputString) {
 	function rh(n) {
@@ -395,49 +396,59 @@ function encrypt2(iv: Uint8Array, data: Uint8Array): Uint8Array {
 }
 
 export class Decryptor {
-	private feedback: Uint8Array | null = null;
-	private roundkeys: Block[] | null = null;
-
+	// private feedback: Uint8Array | null = null;
+	// private roundkeys: Block[] | null = null;
+	private aesCfb: CFBDecryptor | null = null;
 	transform: TransformStream<Buffer>;
 
 	seed(iv: Uint8Array) {
-		this.roundkeys = keygen(iv);
-		this.feedback = new Uint8Array(iv);
+		// this.roundkeys = keygen(iv);
+		// this.feedback = new Uint8Array(iv);
+		this.aesCfb = new CFBDecryptor(iv, iv, 1);
 	}
 
 	constructor() {
 		this.transform = new TransformStream<Buffer>({
 			transform: (chunk, controller) => {
-				if (!this.feedback || !this.roundkeys) {
+				// if (!this.feedback || !this.roundkeys) {
+				// 	controller.enqueue(chunk);
+				// 	return;
+				// }
+				// feedback2 = this.feedback;
+				// roundkeys2 = this.roundkeys;
+				//
+				// controller.enqueue(new Buffer(encrypt2(this.feedback, chunk.inner)));
+				if (!this.aesCfb) {
 					controller.enqueue(chunk);
 					return;
 				}
-				feedback2 = this.feedback;
-				roundkeys2 = this.roundkeys;
-
-				controller.enqueue(new Buffer(encrypt2(this.feedback, chunk.inner)));
+				controller.enqueue(new Buffer(this.aesCfb.decrypt(chunk.inner)));
 			},
 		});
 	}
 }
 
 export class Encryptor {
-	private feedback: Uint8Array | null = null;
-	private roundkeys: Block[] | null = null;
+	// private feedback: Uint8Array | null = null;
+	// private roundkeys: Block[] | null = null;
+	private aesCfb: CFBEncryptor | null = null;
 	constructor() {}
 
 	seed(iv: Uint8Array) {
-		this.roundkeys = keygen(iv);
-		this.feedback = new Uint8Array(iv);
+		// this.roundkeys = keygen(iv);
+		// this.feedback = new Uint8Array(iv);
+		this.aesCfb = new CFBEncryptor(iv, iv, 1);
 	}
 
 	transform(chunk: Buffer): Buffer {
-		if (!this.feedback || !this.roundkeys) return chunk;
-
-		feedback = this.feedback;
-		let out = encrypt(this.feedback, chunk.inner);
-
-		return new Buffer(out);
+		// if (!this.feedback || !this.roundkeys) return chunk;
+		//
+		// feedback = this.feedback;
+		// let out = encrypt(this.feedback, chunk.inner);
+		//
+		// return new Buffer(out);
+		if (!this.aesCfb) return chunk;
+		return new Buffer(this.aesCfb.encrypt(chunk.inner));
 	}
 }
 
