@@ -254,7 +254,7 @@ export async function joinServer(
 	digest: string,
 	uuid: string,
 ) {
-	const res = await fetch(
+	const res = await epoxyFetch(
 		"https://sessionserver.mojang.com/session/minecraft/join",
 		{
 			headers: {
@@ -268,8 +268,6 @@ export async function joinServer(
 			}),
 		},
 	);
-	console.log(res.status);
-	console.log(await res.text());
 }
 window["deviceCodeAuth"] = deviceCodeAuth;
 window["minecraftAuth"] = minecraftAuth;

@@ -4,8 +4,8 @@ import { bytesToUuid } from "./connection/crypto";
 
 const urlCache = {};
 
-let fetchMode = 0;
-let fetchMode2 = 0;
+let fetchMode = false;
+let fetchMode2 = false;
 
 interface TexUrls {
 	skin: string;
@@ -36,20 +36,11 @@ async function funkyFetch(
 	fallbackUrl: string,
 	isCape: boolean
 ): Promise<Response> {
-	if (!uuid || fetchMode2 == 2) {
+	if (!uuid || fetchMode2) {
 		try {
 			return await epoxyFetch(fallbackUrl);
 		} catch (e) {
 			return new Response();
-		}
-	} else if (fetchMode2 == 1) {
-		try {
-			return epoxyFetch(
-				"https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid
-			);
-		} catch (e) {
-			fetchMode2 = 1;
-			return await funkyFetch(uuid, fallbackUrl, isCape);
 		}
 	}
 	try {
@@ -57,7 +48,7 @@ async function funkyFetch(
 			"https://crafthead.net/" + (isCape ? "cape" : "skin") + "/" + uuid
 		);
 	} catch (e) {
-		fetchMode2 = 1;
+		fetchMode2 = true;
 		return await funkyFetch(uuid, fallbackUrl, isCape);
 	}
 }
@@ -70,16 +61,10 @@ async function funnyFetch(url: string): Promise<Tex> {
 		if (url.startsWith("profile://")) {
 			uuid = url.slice(10);
 			const prefix =
-				fetchMode == 2
+				fetchMode
 					? "https://sessionserver.mojang.com/session/minecraft/profile/"
 					: "https://crafthead.net/profile/";
-			let fat;
-			if (fetchMode == 0) {
-				fat = await window.fetch(prefix + uuid);
-			} else {
-				fat = await epoxyFetch(prefix + uuid);
-			}
-			const texData = await getTextureDataByProfileResponse(fat);
+			const texData = await getTextureDataByProfileResponse(await window.fetch(prefix + uuid));
 			url = texData.skin;
 			cape = texData.cape;
 			slim = texData.slim;
@@ -92,14 +77,14 @@ async function funnyFetch(url: string): Promise<Tex> {
 			slim,
 		};
 	} catch (e) {
-		if (fetchMode == 2) {
+		if (fetchMode) {
 			return {
 				skin: Buffer.new(),
 				cape: Buffer.new(),
 				slim: false,
 			};
 		}
-		fetchMode++;
+		fetchMode = true;
 		return await funnyFetch(url);
 	}
 }

@@ -44,8 +44,6 @@ class WispWS extends EventTarget {
 		if (typeof chunk == "string") {
 			if (chunk.toLowerCase() == "accept: motd") {
 				this.inner.ping();
-			} else {
-				console.warn("IGNORING CHUNK", chunk);
 			}
 			return;
 		} else if (chunk instanceof ArrayBuffer) {
@@ -71,7 +69,6 @@ class SettingsWS extends EventTarget {
 	}
 	send(chunk: Uint8Array | ArrayBuffer | string) {
 		if (typeof chunk === "string" && chunk.toLowerCase() === "accept: motd") {
-			console.log("SENDING", chunk);
 			this.dispatchEvent(
 				new MessageEvent("message", {
 					data: JSON.stringify({
@@ -119,7 +116,6 @@ export function makeFakeWebSocket(): typeof WebSocket {
 	return new Proxy(WebSocket, {
 		construct(_target, [uri, protos]) {
 			let url = new URL(uri);
-			console.log(url);
 			if (url.host == "java") {
 				const ws = new WispWS(uri);
 				ws.start();

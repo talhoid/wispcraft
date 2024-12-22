@@ -1,4 +1,5 @@
 import { Buffer } from "../buffer";
+import { CFBEncryptor, CFBDecryptor } from "aes-ts";
 
 function md5(inputString) {
 	function rh(n) {
@@ -358,109 +359,39 @@ function arrayToBlock(array: Uint8Array): Block {
 	return block;
 }
 
-// using cfb-8 mode
-function encrypt(iv: Uint8Array, data: Uint8Array): Uint8Array {
-	// iv is 128 bits
-	let feedback = new Uint8Array(iv);
-	const out: number[] = [];
-
-	for (let i = 0; i < data.length; i++) {
-		let block = arrayToBlock(feedback);
-		block = encryptBlock(block, iv);
-
-		let ciphertextByte = data[i] ^ block[0][0];
-		out.push(ciphertextByte);
-
-		// shift feedback
-		feedback = feedback.slice(1);
-		feedback[15] = ciphertextByte;
-	}
-
-	return new Uint8Array(out);
-}
-
-function decrypt(iv: Uint8Array, data: Uint8Array): Uint8Array {
-	let feedback = new Uint8Array(iv);
-	const out: number[] = [];
-
-	for (let i = 0; i < data.length; i++) {
-		let block = arrayToBlock(feedback);
-		block = encryptBlock(block, iv);
-
-		let plaintextByte = data[i] ^ block[0][0];
-		out.push(plaintextByte);
-
-		// shift feedback
-		feedback = feedback.slice(1);
-		feedback[15] = data[i];
-	}
-
-	return new Uint8Array(out);
-}
-
 export class Decryptor {
-	private feedback: Uint8Array | null = null;
-	private iv: Uint8Array | null = null;
+	private aesCfb: CFBDecryptor | null = null;
 
 	transform: TransformStream<Buffer>;
 
 	seed(iv: Uint8Array) {
-		this.iv = iv;
-		this.feedback = new Uint8Array(iv);
+		this.aesCfb = new CFBDecryptor(iv, iv, 1);
 	}
 
 	constructor() {
 		this.transform = new TransformStream<Buffer>({
 			transform: (chunk, controller) => {
-				if (!this.feedback || !this.iv) {
+				if (!this.aesCfb) {
 					controller.enqueue(chunk);
 					return;
 				}
-
-				let out = new Uint8Array(chunk.length);
-				for (let i = 0; i < chunk.length; i++) {
-					let block = arrayToBlock(this.feedback);
-					block = encryptBlock(block, this.iv);
-
-					let plaintextByte = chunk[i] ^ block[0][0];
-					out[i] = plaintextByte;
-
-					// shift feedback
-					this.feedback = this.feedback.slice(1);
-					this.feedback[15] = chunk[i];
-				}
-				controller.enqueue(new Buffer(out));
+				controller.enqueue(new Buffer(this.aesCfb.decrypt(chunk.inner)));
 			},
 		});
 	}
 }
 
 export class Encryptor {
-	private feedback: Uint8Array | null = null;
-	private iv: Uint8Array | null = null;
+	private aesCfb: CFBEncryptor | null = null;
 	constructor() {}
 
 	seed(iv: Uint8Array) {
-		this.iv = iv;
-		this.feedback = new Uint8Array(iv);
+		this.aesCfb = new CFBEncryptor(iv, iv, 1);
 	}
 
 	transform(chunk: Buffer): Buffer {
-		if (!this.feedback || !this.iv) return chunk;
-
-		let out = new Uint8Array(chunk.length);
-		for (let i = 0; i < chunk.length; i++) {
-			let block = arrayToBlock(this.feedback);
-			block = encryptBlock(block, this.iv);
-
-			let ciphertextByte = chunk[i] ^ block[0][0];
-			out[i] = ciphertextByte;
-
-			// shift feedback
-			this.feedback = this.feedback.slice(1);
-			this.feedback[15] = ciphertextByte;
-		}
-		return new Buffer(out);
+		if (!this.aesCfb) return chunk;
+		return new Buffer(this.aesCfb.encrypt(chunk.inner));
 	}
 }
 
