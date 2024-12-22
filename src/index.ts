@@ -329,7 +329,7 @@ export class EaglerProxy {
 								exponent,
 							);
 
-							await joinServer("token_here", digest, "uuid_no_dashes_here");
+							await joinServer(window["mc_token"] || "token_here", digest, window["mc_uuid"]);
 
 							let response = new Packet(Serverbound.EncryptionResponse);
 							response.writeVariableData(new Buffer(encrypedSecret));
