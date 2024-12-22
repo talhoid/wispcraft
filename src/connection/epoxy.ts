@@ -43,6 +43,10 @@ export async function connect_tcp(socket: string): Promise<EpoxyIoStream> {
 	return await epoxy!.connect_tcp(socket);
 }
 
+export function set_wisp_server(wisp_url: string) {
+	wisp = wisp_url;
+}
+
 export async function reconnect() {
 	await create();
 
