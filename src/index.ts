@@ -1,7 +1,16 @@
 import { Buffer } from "./buffer";
 import { BytesWriter, Compressor, Decompressor } from "./connection/framer";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
-import { bytesToUuid, Decryptor, Encryptor, offlineUUID } from "./crypto";
+import {
+	bytesToUuid,
+	Decryptor,
+	encryptMessage,
+	Encryptor,
+	importKey,
+	makeSharedSecret,
+	mchash,
+	offlineUUID,
+} from "./connection/crypto";
 import { handleSkinCape } from "./skins";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
@@ -56,11 +65,6 @@ class Packet extends Buffer {
 		this.writeVarInt(packetType);
 	}
 }
-
-const serverboundNonstandard = [
-	Serverbound.EAG_ClientVersion,
-	Serverbound.EAG_RequestLogin,
-];
 
 const fakever = new Packet(Clientbound.EAG_ServerVersion);
 {
@@ -304,6 +308,47 @@ export class EaglerProxy {
 						console.error("Set compression threshold: " + threshold);
 						this.decompressor.compressionThresh = threshold;
 						this.compressor.compressionThresh = threshold;
+						break;
+					case Clientbound.EncryptionRequest:
+						{
+							let serverId = packet.readString();
+							let publicKey = packet.take(packet.readVarInt());
+							let verifyToken = packet.take(packet.readVarInt());
+
+							let sharedSecret = makeSharedSecret();
+							let digest = mchash(
+								new Uint8Array([
+									...new TextEncoder().encode(serverId),
+									...sharedSecret,
+									...publicKey.inner,
+								]),
+							);
+
+							let key = await importKey(publicKey.inner);
+							let encrypedSecret = new Uint8Array(
+								await encryptMessage(key, sharedSecret),
+							);
+							let encryptedChallenge = new Uint8Array(
+								await encryptMessage(key, verifyToken.inner),
+							);
+
+							let postdata = {
+								accessToken: "...",
+								selectedProfile: "uuid goes here",
+								serverId: digest,
+							};
+							// r58 send the post here
+
+							let response = new Packet(Serverbound.EncryptionResponse);
+							response.writeVarInt(encrypedSecret.length);
+							response.extend(new Buffer(encrypedSecret));
+							response.writeVarInt(encryptedChallenge.length);
+							response.extend(new Buffer(encryptedChallenge));
+							this.net.write(response);
+
+							this.encryptor.seed(sharedSecret);
+							this.decryptor.seed(sharedSecret);
+						}
 						break;
 					default:
 						console.error("Unhandled login packet: " + pk);

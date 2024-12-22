@@ -1,4 +1,4 @@
-import { Buffer } from "./buffer";
+import { Buffer } from "../buffer";
 
 function md5(inputString) {
 	function rh(n) {
@@ -464,13 +464,13 @@ export class Encryptor {
 	}
 }
 
-function makeSharedSecret(): Uint8Array {
+export function makeSharedSecret(): Uint8Array {
 	const array = new Uint8Array(16);
 	crypto.getRandomValues(array);
 	return array;
 }
 
-function importKey(keyBytes: Uint8Array): Promise<CryptoKey> {
+export function importKey(keyBytes: Uint8Array): Promise<CryptoKey> {
 	return crypto.subtle.importKey(
 		"pkcs8",
 		new Uint8Array(keyBytes).buffer,
@@ -483,7 +483,7 @@ function importKey(keyBytes: Uint8Array): Promise<CryptoKey> {
 	);
 }
 
-function encryptMessage(
+export function encryptMessage(
 	publicKey: CryptoKey,
 	message: Uint8Array,
 ): Promise<ArrayBuffer> {
@@ -496,7 +496,7 @@ function encryptMessage(
 	);
 }
 
-async function mchash(input: Uint8Array) {
+export async function mchash(input: Uint8Array) {
 	let buf = new Uint8Array(await crypto.subtle.digest("sha-1", input));
 	let out = "";
 

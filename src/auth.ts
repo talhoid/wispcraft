@@ -1,5 +1,5 @@
 import { fetch } from "./connection/epoxy";
-import { bytesToUuid } from "./crypto";
+import { bytesToUuid } from "./connection/crypto";
 
 // https://gist.github.com/Plagiatus/ce5f18bc010395fc45d8553905e10f55
 export interface UserInfo {
@@ -48,7 +48,7 @@ export async function deviceCodeAuth(): Promise<string> {
 				client_id: CLIENT_ID,
 				scope: "XboxLive.signin offline_access",
 			}).toString(),
-		}
+		},
 	);
 
 	interface DeviceCodeResponse {
@@ -67,7 +67,7 @@ export async function deviceCodeAuth(): Promise<string> {
 	}
 
 	console.log(
-		`Please go to ${verification_uri} and enter the code: ${user_code}`
+		`Please go to ${verification_uri} and enter the code: ${user_code}`,
 	);
 
 	// poll the token endpoint until the user completes the authentication
@@ -91,7 +91,7 @@ export async function deviceCodeAuth(): Promise<string> {
 					grant_type: "urn:ietf:params:oauth:grant-type:device_code",
 					device_code: device_code,
 				}).toString(),
-			}
+			},
 		);
 
 		const pollingResponse: TokenPollingResponse = await tokenRes.json();
@@ -114,13 +114,13 @@ export async function deviceCodeAuth(): Promise<string> {
 async function startOAuthFlow(): Promise<{ code: string }> {
 	const state = randomUUID();
 	const authUrl = new URL(
-		"https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize"
+		"https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize",
 	);
 	authUrl.searchParams.append("client_id", CLIENT_ID);
 	authUrl.searchParams.append("response_type", "code");
 	authUrl.searchParams.append(
 		"redirect_uri",
-		`http://localhost:${REDIRECT_PORT}`
+		`http://localhost:${REDIRECT_PORT}`,
 	);
 	authUrl.searchParams.append("scope", "XboxLive.signin offline_access");
 	authUrl.searchParams.append("state", state);
@@ -143,7 +143,7 @@ async function exchangeCodeForToken(code: string): Promise<string> {
 				redirect_uri: `http://localhost:${REDIRECT_PORT}`,
 				grant_type: "authorization_code",
 			}).toString(),
-		}
+		},
 	);
 
 	const tokenData: OAuthResponse = await tokenRes.json();
@@ -181,7 +181,7 @@ async function xboxAuth(msToken: string): Promise<string> {
 }
 
 async function xstsAuth(
-	xboxToken: string
+	xboxToken: string,
 ): Promise<{ token: string; userHash: string }> {
 	const res = await fetch("https://xsts.auth.xboxlive.com/xsts/authorize", {
 		headers: {
@@ -209,14 +209,14 @@ async function xstsAuth(
 				throw new Error("xsts says this account does not have a xbox account");
 			case 2148916235:
 				throw new Error(
-					"xsts says xbox live is not available in this account's country"
+					"xsts says xbox live is not available in this account's country",
 				);
 			case 2148916236:
 			case 2148916237:
 				throw new Error("xsts says this account needs adult verification");
 			case 2148916238:
 				throw new Error(
-					"xsts says this account is under 18 and needs to be added to a family"
+					"xsts says this account is under 18 and needs to be added to a family",
 				);
 			case 2148916262:
 			default:
@@ -248,7 +248,7 @@ async function mcAuth(xstsToken: string, xstsHash: string): Promise<string> {
 			body: JSON.stringify({
 				identityToken: `XBL3.0 x=${xstsHash};${xstsToken}`,
 			}),
-		}
+		},
 	);
 	const json = await res.json();
 	const token = json["access_token"];
@@ -264,13 +264,13 @@ export async function checkOwnership(mcToken: string): Promise<boolean> {
 			headers: {
 				Authorization: `Bearer ${mcToken}`,
 			},
-		}
+		},
 	);
 	const json = await res.json();
 	return (
 		json.items?.some(
 			(item: { name: string }) =>
-				item.name === "product_minecraft" || item.name === "game_minecraft"
+				item.name === "product_minecraft" || item.name === "game_minecraft",
 		) ?? false
 	);
 }
@@ -282,7 +282,7 @@ export async function getProfile(mcToken: string): Promise<UserInfo> {
 			headers: {
 				Authorization: `Bearer ${mcToken}`,
 			},
-		}
+		},
 	);
 	const json = await res.json();
 	if (!json["id"] || !json["name"])
