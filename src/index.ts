@@ -158,7 +158,7 @@ export class EaglerProxy {
 				switch (packet.readVarInt()) {
 					case Serverbound.EAG_ClientVersion:
 						// eagler specific packet, return server version 3
-						this.eagler.write(fakever);
+						await this.eagler.write(fakever);
 						return;
 					case Serverbound.EAG_RequestLogin:
 						let username = packet.readString();
@@ -169,7 +169,7 @@ export class EaglerProxy {
 						fakelogin.writeBytes([usernameEnc.length]);
 						fakelogin.extend(new Buffer(usernameEnc));
 						fakelogin.writeBytes(offlineUUID(username));
-						this.eagler.write(fakelogin);
+						await this.eagler.write(fakelogin);
 						return;
 					case Serverbound.EAG_FinishLogin:
 						// this says finish login but it only finishes the handshake stage since eagler
@@ -181,11 +181,11 @@ export class EaglerProxy {
 						handshake.writeString(this.serverAddress);
 						handshake.writeUShort(this.serverPort);
 						handshake.writeVarInt(State.Login);
-						this.net.write(handshake);
+						await this.net.write(handshake);
 
 						let loginstart = new Packet(Serverbound.LoginStart);
 						loginstart.writeString(this.username);
-						this.net.write(loginstart);
+						await this.net.write(loginstart);
 						break;
 				}
 				break;
@@ -217,7 +217,7 @@ export class EaglerProxy {
 					default:
 						let p = new Packet(pk);
 						p.extend(packet);
-						this.net.write(p);
+						await this.net.write(p);
 						break;
 				}
 		}
@@ -279,7 +279,7 @@ export class EaglerProxy {
 							image.src = body.favicon;
 						}
 
-						this.eagler.write(JSON.stringify(response));
+						await this.eagler.write(JSON.stringify(response));
 						break;
 					case Clientbound.PongResponse:
 						let time = packet.readLong();
@@ -312,7 +312,9 @@ export class EaglerProxy {
 							let verifyToken = packet.readVariableData();
 
 							let sharedSecret = makeSharedSecret();
-							let digest = await mchash(new Uint8Array([...sharedSecret, ...publicKey.inner]));
+							let digest = await mchash(
+								new Uint8Array([...sharedSecret, ...publicKey.inner]),
+							);
 
 							const [modulus, exponent] = await loadKey(publicKey.inner);
 							let encrypedSecret = encryptRSA(sharedSecret, modulus, exponent);
@@ -322,11 +324,7 @@ export class EaglerProxy {
 								exponent,
 							);
 
-							await joinServer(
-								"token_here",
-								digest,
-								"uuid_no_dashes_here",
-							);
+							await joinServer("token_here", digest, "uuid_no_dashes_here");
 
 							let response = new Packet(Serverbound.EncryptionResponse);
 							response.writeVariableData(new Buffer(encrypedSecret));
@@ -359,7 +357,7 @@ export class EaglerProxy {
 						// send rest of packet to eagler
 						let eag = new Packet(pk);
 						eag.extend(packet);
-						this.eagler.write(eag);
+						await this.eagler.write(eag);
 				}
 		}
 	}
@@ -387,7 +385,7 @@ export class EaglerProxy {
 window.WebSocket = makeFakeWebSocket();
 
 const nativeFetch = fetch;
-window.fetch = async function(url: RequestInfo | URL, init?: RequestInit) {
+window.fetch = async function (url: RequestInfo | URL, init?: RequestInit) {
 	try {
 		return await nativeFetch(url, init);
 	} catch (e) {
