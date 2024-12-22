@@ -11,6 +11,9 @@ importers:
       '@mercuryworkshop/epoxy-tls':
         specifier: 2.1.17-1
         version: 2.1.17-1
+      aes-ts:
+        specifier: ^0.0.0-alpha.0
+        version: 0.0.0-alpha.0
     devDependencies:
       '@rollup/plugin-data-uri':
         specifier: ^1.0.3
@@ -232,6 +235,9 @@ packages:
     resolution: {integrity: sha512-cl669nCJTZBsL97OF4kUQm5g5hC2uihk0NxY3WENAC0TYdILVkAyHymAntgxGkl7K+t0cXIrH5siy5S4XkFycA==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  aes-ts@0.0.0-alpha.0:
+    resolution: {integrity: sha512-0jNHgzxCXZETQsYMfzxmJ3plJfkX4kVzVJPNNqYNAONCRSxhucEJNe/XMOC+ozLJdZykWaRMrcv2hczmjytpUQ==}
 
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
@@ -543,6 +549,8 @@ snapshots:
   '@types/resolve@1.20.2': {}
 
   acorn@8.14.0: {}
+
+  aes-ts@0.0.0-alpha.0: {}
 
   buffer-from@1.1.2: {}
 
