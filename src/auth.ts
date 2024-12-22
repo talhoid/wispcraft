@@ -36,6 +36,81 @@ export async function getMicrosoftToken(): Promise<string> {
 	return exchangeCodeForToken(code);
 }
 
+export async function deviceCodeAuth(): Promise<string> {
+	const deviceCodeRes = await fetch(
+		"https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode",
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			body: new URLSearchParams({
+				client_id: CLIENT_ID,
+				scope: "XboxLive.signin offline_access",
+			}).toString(),
+		}
+	);
+
+	interface DeviceCodeResponse {
+		device_code: string;
+		user_code: string;
+		verification_uri: string;
+		expires_in: number;
+		interval: number;
+	}
+
+	const deviceCodeData: DeviceCodeResponse = await deviceCodeRes.json();
+	const { device_code, user_code, verification_uri, interval } = deviceCodeData;
+
+	if (!device_code || !user_code || !verification_uri) {
+		throw new Error("Failed to obtain device code information.");
+	}
+
+	console.log(
+		`Please go to ${verification_uri} and enter the code: ${user_code}`
+	);
+
+	// poll the token endpoint until the user completes the authentication
+	let tokenData: OAuthResponse | null = null;
+
+	interface TokenPollingResponse {
+		access_token?: string;
+		error?: string;
+	}
+
+	while (!tokenData?.access_token) {
+		const tokenRes = await fetch(
+			"https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				body: new URLSearchParams({
+					client_id: CLIENT_ID,
+					grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+					device_code: device_code,
+				}).toString(),
+			}
+		);
+
+		const pollingResponse: TokenPollingResponse = await tokenRes.json();
+
+		if (pollingResponse.access_token) {
+			tokenData = {
+				access_token: pollingResponse.access_token,
+			} as OAuthResponse;
+		} else if (pollingResponse.error === "authorization_pending") {
+			// user has not completed the authentication yet; wait for the interval
+			await new Promise((resolve) => setTimeout(resolve, interval * 1000));
+		} else {
+			throw new Error(`Polling failed with error: ${pollingResponse.error}`);
+		}
+	}
+
+	return tokenData.access_token;
+}
+
 async function startOAuthFlow(): Promise<{ code: string }> {
 	const state = randomUUID();
 	const authUrl = new URL(
