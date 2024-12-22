@@ -307,13 +307,18 @@ export class EaglerProxy {
 						break;
 					case Clientbound.EncryptionRequest:
 						{
-							packet.readString();
+							let serverid = packet.readString();
+							console.log("Server ID: " + serverid);
 							let publicKey = packet.readVariableData();
 							let verifyToken = packet.readVariableData();
 
 							let sharedSecret = makeSharedSecret();
 							let digest = await mchash(
-								new Uint8Array([...sharedSecret, ...publicKey.inner]),
+								new Uint8Array([
+									...new TextEncoder().encode(serverid),
+									...sharedSecret,
+									...publicKey.inner,
+								]),
 							);
 
 							const [modulus, exponent] = await loadKey(publicKey.inner);
