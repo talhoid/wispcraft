@@ -13,7 +13,7 @@ import {
 } from "./connection/crypto";
 import { handleSkinCape } from "./skins";
 import "./auth";
-import { joinServer } from "./auth";
+import { getProfile, joinServer } from "./auth";
 import { epoxyFetch } from "./connection/epoxy";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
@@ -329,7 +329,7 @@ export class EaglerProxy {
 								exponent,
 							);
 
-							await joinServer(window["mc_token"] || "token_here", digest, window["mc_uuid"]);
+							await joinServer(window["mc_token"], digest, (await getProfile(window["mc_token"])).id);
 
 							let response = new Packet(Serverbound.EncryptionResponse);
 							response.writeVariableData(new Buffer(encrypedSecret));
