@@ -20,6 +20,61 @@ export interface CapeInfo extends AccessoryInfo {
 	alias: string;
 }
 
+const CLIENT_ID = "a370fff9-7648-4dbf-b96e-2b4f8d539ac2";
+const REDIRECT_PORT = 9090;
+
+interface OAuthResponse {
+	access_token: string;
+	token_type: string;
+	expires_in: number;
+	scope: string;
+	refresh_token: string;
+}
+
+export async function getMicrosoftToken(): Promise<string> {
+	const { code } = await startOAuthFlow();
+	return exchangeCodeForToken(code);
+}
+
+async function startOAuthFlow(): Promise<{ code: string }> {
+	const state = randomUUID();
+	const authUrl = new URL(
+		"https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize"
+	);
+	authUrl.searchParams.append("client_id", CLIENT_ID);
+	authUrl.searchParams.append("response_type", "code");
+	authUrl.searchParams.append(
+		"redirect_uri",
+		`http://localhost:${REDIRECT_PORT}`
+	);
+	authUrl.searchParams.append("scope", "XboxLive.signin offline_access");
+	authUrl.searchParams.append("state", state);
+
+	return { code: authUrl.toString() };
+}
+
+async function exchangeCodeForToken(code: string): Promise<string> {
+	const tokenRes = await fetch(
+		"https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			body: new URLSearchParams({
+				client_id: CLIENT_ID,
+				scope: "XboxLive.signin offline_access",
+				code: code,
+				redirect_uri: `http://localhost:${REDIRECT_PORT}`,
+				grant_type: "authorization_code",
+			}).toString(),
+		}
+	);
+
+	const tokenData: OAuthResponse = await tokenRes.json();
+	return tokenData.access_token;
+}
+
 function randomUUID(): string {
 	let bytes = crypto.getRandomValues(new Uint8Array(16));
 	bytes[6] = (bytes[6] & 0x0f) | 0x40;
