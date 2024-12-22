@@ -10,7 +10,7 @@ export class Buffer {
 	constructor(inner: Uint8Array | number[], copy?: boolean) {
 		if (inner instanceof Uint8Array) {
 			if (copy) {
-				this.inner = Uint8Array.of(...inner);
+				this.inner = Uint8Array.from([...inner]);
 			} else {
 				this.inner = inner;
 			}
@@ -19,12 +19,16 @@ export class Buffer {
 		}
 	}
 
+	copy(): Buffer {
+		return new Buffer(this.inner.slice());
+	}
+
 	// precious allocations...
 	take(cnt: number): Buffer {
 		if (this.length < cnt) throw new Error("data too small");
 
-		const ret = this.inner.slice(0, cnt);
-		this.inner = this.inner.slice(cnt);
+		const ret = this.inner.subarray(0, cnt);
+		this.inner = this.inner.subarray(cnt);
 		return new Buffer(ret);
 	}
 
