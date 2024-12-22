@@ -68,6 +68,7 @@ export class Connection {
 	}
 
 	async forward(connectcallback: () => void) {
+		let connectUrl: URL | undefined;
 		try {
 			const dns = await fetch(`https://cloudflare-dns.com/dns-query?name=_minecraft._tcp.${this.url.hostname}&type=SRV`, {
 				headers: {
@@ -79,10 +80,10 @@ export class Connection {
 				const data = dnsResponse.Answer[0].data.split(" ")
 				const port = data[2]
 				const hostname = data[3]
-				this.url = new URL(`java://${hostname}:${port}`)
+				connectUrl = new URL(`java://${hostname}:${port}`)
 			}
 		} catch {}
-		const conn = await connect_tcp(this.url.host);
+		const conn = await connect_tcp(connectUrl ? connectUrl.host : this.url.host);
 		connectcallback();
 		const writer = bufferWriter(conn.write.getWriter());
 		this.rawEpoxy = writer.getWriter();
