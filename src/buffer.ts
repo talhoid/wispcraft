@@ -72,13 +72,13 @@ export class Buffer {
 	}
 
 	readUShort(): number {
-		const ret = this.inner[0] | (this.inner[1] << 8);
+		const ret = (this.get(0) << 8) | this.get(1);
 		this.take(2);
 		return ret;
 	}
 
 	writeUShort(num: number) {
-		this.extend(new Buffer([num & 0xff, (num >> 8) & 0xff]));
+		this.extend(new Buffer([num >> 8, num & 0xff]));
 	}
 
 	readLong(): number {
