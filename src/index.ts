@@ -3,7 +3,6 @@ import { epoxyFetch } from "./connection/epoxy";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
 
 const nativeFetch = fetch;
-
 type AuthStore = {
 	user: UserInfo | null;
 	yggToken: string;

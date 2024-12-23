@@ -402,9 +402,10 @@ export async function handleSkinCape(
 			return res;
 		} else if (id == 0x06) {
 			const part = packet.take(16);
-			const fard = packet.take(2);
 			const url = new TextDecoder().decode(
-				packet.take((fard.get(0) << 8) | fard.get(1)).inner
+				packet.take(
+					packet.take(2).readUShort()
+				).inner
 			);
 			if (new URL(url).hostname != "textures.minecraft.net") {
 				return Buffer.new();
