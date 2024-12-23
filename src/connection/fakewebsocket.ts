@@ -1,8 +1,6 @@
-import { Connection } from ".";
-import { authstore } from "..";
+import { authstore, type AuthStore } from "..";
 import { Buffer } from "../buffer";
 import { showUI } from "../ui";
-import { wisp } from "./epoxy";
 // @ts-ignore typescript sucks
 import wispcraft from "./wispcraft.png";
 
@@ -19,7 +17,10 @@ class WispWS extends EventTarget {
 
 		this.url = uri;
 		this.worker = new Worker("worker.js");
-		this.worker.postMessage({userProfile: authstore})
+		this.worker.postMessage({
+			user: authstore.user,
+			ygg: authstore.yggToken,
+		});
 		this.readyState = WebSocket.CONNECTING;
 		this.worker.onmessage = async ({ data }) => {
 			this.eaglerIn = data.eaglerIn.getWriter();
@@ -50,7 +51,11 @@ class WispWS extends EventTarget {
 	}
 
 	start() {
-		this.worker.postMessage({ uri: this.url });
+		this.worker.postMessage({
+			uri: this.url,
+			wisp: localStorage["wispcraft_wispurl"],
+			authstore,
+		});
 	}
 
 	send(chunk: Uint8Array | ArrayBuffer | string) {
@@ -264,8 +269,6 @@ export function makeFakeWebSocket(): typeof WebSocket {
 				return ws;
 			} else if (url.hostname == "settings") {
 				return new SettingsWS();
-			} else if (uri == wisp) {
-				return new NativeWebSocket(uri, protos);
 			} else {
 				return new AutoWS(uri, protos);
 			}

@@ -4,20 +4,16 @@ import initEpoxy, {
 	EpoxyClientOptions,
 } from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
 
-export let wisp =
-	new URLSearchParams(location.search).get("wisp") ||
-	// localStorage.getItem("wispcraft_wispurl") ||
-	"wss://anura.pro/";
 let connectedwisp = "";
 
-let initted = false;
 let epoxy: EpoxyClient | null = null;
 
-async function create() {
-	if (!initted) {
-		await initEpoxy();
-		initted = true;
-	}
+let resolver;
+let initpromise = new Promise((r) => (resolver = r));
+
+export async function initWisp(wisp: string) {
+	await initEpoxy();
+	resolver();
 
 	if (!epoxy || wisp != connectedwisp) {
 		const options = new EpoxyClientOptions();
@@ -29,26 +25,26 @@ async function create() {
 }
 
 export async function epoxyFetch(url: string, opts?: any): Promise<Response> {
-	await create();
+	await initpromise;
 
 	// create() inits epoxy
 	return await epoxy!.fetch(url, opts);
 }
 
 export async function connect_tcp(socket: string): Promise<EpoxyIoStream> {
-	await create();
+	await initpromise;
 
 	// create() inits epoxy
 	return await epoxy!.connect_tcp(socket);
 }
 
 export function set_wisp_server(wisp_url: string) {
-	wisp = wisp_url;
+	initpromise = new Promise((r) => (resolver = r));
+	initWisp(wisp_url);
 }
 
 export async function reconnect() {
-	await create();
+	await initpromise;
 
-	// create() inits epoxy
 	await epoxy!.replace_stream_provider();
 }

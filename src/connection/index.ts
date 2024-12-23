@@ -1,5 +1,5 @@
 import { EaglerProxy } from "../1.8";
-import { connect_tcp } from "./epoxy";
+import { connect_tcp, initWisp } from "./epoxy";
 import { Buffer } from "../buffer";
 import {
 	bufferTransformer,
@@ -10,6 +10,7 @@ import {
 	lengthTransformer,
 	writeTransform,
 } from "./framer";
+import type { AuthStore } from "..";
 
 function link<T>(): [ReadableStream<T>, WritableStream<T>] {
 	let readController: ReadableStreamDefaultController<T>;
@@ -53,7 +54,13 @@ export class Connection {
 	impl?: EaglerProxy;
 	rawEpoxy?: BytesWriter;
 
-	constructor(uri: string) {
+	constructor(
+		uri: string,
+		wispurl: string,
+		private authStore: AuthStore,
+	) {
+		initWisp(wispurl);
+
 		const [processIn, eaglerIn] = link<Buffer>();
 		this.processIn = processIn;
 		this.eaglerIn = eaglerIn;
@@ -104,6 +111,7 @@ export class Connection {
 			}).getWriter(),
 			this.url.hostname,
 			this.url.port ? parseInt(this.url.port) : 25565,
+			this.authStore,
 		);
 
 		// epoxy -> process -> (hopefully) eagler task

@@ -2,8 +2,6 @@ import { Connection } from "./connection";
 
 let conn: Connection;
 
-export const authInfo = {yggToken: "", user: {id: ""}};
-
 self.onmessage = ({ data }) => {
 	if (data.ping) {
 		conn.ping();
@@ -13,14 +11,8 @@ self.onmessage = ({ data }) => {
 		conn.eaglerIn.close();
 		return;
 	}
-	if (data.userProfile) {
-		
-		authInfo.yggToken = data.userProfile.yggToken;
-		authInfo.user = data.userProfile.user;
-		console.log("Got userinfo: ", authInfo)
-	}
 
-	conn = new Connection(data.uri);
+	conn = new Connection(data.uri, data.wisp, data.authstore);
 	conn.forward(() => {
 		self.postMessage(
 			{

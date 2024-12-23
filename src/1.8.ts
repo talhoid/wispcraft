@@ -13,7 +13,7 @@ import {
 import { handleSkinCape } from "./skins";
 import "./auth";
 import { joinServer } from "./auth";
-import {authInfo} from "./worker"
+import type { AuthStore } from ".";
 // import { authstore } from "./index";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
@@ -147,6 +147,7 @@ export class EaglerProxy {
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
 		public serverPort: number,
+		public authStore: AuthStore,
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
@@ -181,15 +182,15 @@ export class EaglerProxy {
 						this.offlineUsername = username;
 
 						let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
-						// if (authstore.user) {
-						// 	fakelogin.writeString(authstore.user.name);
-						// 	fakelogin.writeBytes(
-						// 		authstore.user.id.split("").map((x) => parseInt(x)),
-						// 	);
-						// } else {
-						fakelogin.writeString(this.offlineUsername);
-						fakelogin.writeBytes(offlineUUID(username));
-						/* } */
+						if (this.authStore.user) {
+							fakelogin.writeString(this.authStore.user.name);
+							fakelogin.writeBytes(
+								this.authStore.user.id.split("").map((x) => parseInt(x)),
+							);
+						} else {
+							fakelogin.writeString(this.offlineUsername);
+							fakelogin.writeBytes(offlineUUID(username));
+						}
 						await this.eagler.write(fakelogin);
 						return;
 					case Serverbound.EAG_FinishLogin:
@@ -205,11 +206,11 @@ export class EaglerProxy {
 						await this.net.write(handshake);
 
 						let loginstart = new Packet(Serverbound.LoginStart);
-						// if (authstore.user) {
-						// 	loginstart.writeString(authstore.user.name);
-						// } else {
-						loginstart.writeString(this.offlineUsername);
-						// }
+						if (this.authStore.user) {
+							loginstart.writeString(this.authStore.user.name);
+						} else {
+							loginstart.writeString(this.offlineUsername);
+						}
 						await this.net.write(loginstart);
 						break;
 				}
@@ -340,7 +341,7 @@ export class EaglerProxy {
 						{
 							this.isPremium = true;
 
-							if (authInfo.user == null) {
+							if (this.authStore.user == null) {
 								const reason =
 									"This server requires authentication, but you are not logged in!\n Connect to Wispcraft Settings to log in with Microsoft";
 								let eag = createEagKick(reason);
@@ -369,8 +370,12 @@ export class EaglerProxy {
 								modulus,
 								exponent,
 							);
-							console.log("joining with: ", authInfo);
-							await joinServer(authInfo.yggToken, digest, authInfo.user.id);
+							console.log("joining with: ", this.authStore);
+							await joinServer(
+								this.authStore.yggToken,
+								digest,
+								this.authStore.user.id,
+							);
 
 							let response = new Packet(Serverbound.EncryptionResponse);
 							response.writeVariableData(new Buffer(encrypedSecret));

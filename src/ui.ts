@@ -1,12 +1,12 @@
 import { deviceCodeAuth, getProfile, minecraftAuth } from "./auth";
-import { reconnect, set_wisp_server, wisp } from "./connection/epoxy";
+import { reconnect, set_wisp_server } from "./connection/epoxy";
 import { authstore, TokenStore } from ".";
 
 let keydownListeners: Array<EventListenerOrEventListenerObject> = [];
 const nativeAddEventListener = window.addEventListener;
 window.addEventListener = (
 	type: string,
-	listener: EventListenerOrEventListenerObject
+	listener: EventListenerOrEventListenerObject,
 ) => {
 	if (type == "keydown") {
 		keydownListeners.push(listener);
@@ -284,7 +284,7 @@ export function createUI() {
 	const auth = document.querySelector("#auth") as HTMLDivElement;
 
 	const settingsTab = document.querySelector(
-		"#settings_tab"
+		"#settings_tab",
 	) as HTMLSpanElement;
 	const authTab = document.querySelector("#auth_tab") as HTMLSpanElement;
 
@@ -292,28 +292,28 @@ export function createUI() {
 
 	wispInput.addEventListener("focusin", () =>
 		keydownListeners.map((listener) =>
-			window.removeEventListener("keydown", listener)
-		)
+			window.removeEventListener("keydown", listener),
+		),
 	);
 
 	wispInput.addEventListener("focusout", () =>
 		keydownListeners.map((listener) =>
-			nativeAddEventListener("keydown", listener)
-		)
+			nativeAddEventListener("keydown", listener),
+		),
 	);
 	const saveButton = document.querySelector(
-		"#save_button"
+		"#save_button",
 	) as HTMLButtonElement;
 	const saveStatus = document.querySelector(
-		"#save_status"
+		"#save_status",
 	) as HTMLButtonElement;
 
 	const accountSelect = document.querySelector(
-		"#account_select"
+		"#account_select",
 	) as HTMLSelectElement;
 	const addButton = document.querySelector("#addbutton") as HTMLButtonElement;
 	const accountStatus = document.querySelector(
-		"#account_status"
+		"#account_status",
 	) as HTMLSpanElement;
 
 	if (localStorage["wispcraft_wispurl"]) {
@@ -322,7 +322,7 @@ export function createUI() {
 
 	if (localStorage["wispcraft_accounts"]) {
 		const accounts = JSON.parse(
-			localStorage["wispcraft_accounts"]
+			localStorage["wispcraft_accounts"],
 		) as TokenStore[];
 		for (const account of accounts) {
 			const option = document.createElement("option");
@@ -334,21 +334,21 @@ export function createUI() {
 
 	if (localStorage["wispcraft_last_used_account"]) {
 		const option = document.querySelector(
-			`option[value="${localStorage["wispcraft_last_used_account"]}"]`
+			`option[value="${localStorage["wispcraft_last_used_account"]}"]`,
 		) as HTMLOptionElement;
 		option.selected = true;
 	}
 
 	saveButton.onclick = async () => {
-        try {
-            const value = wispInput.value;
-            localStorage.setItem("wispcraft_wispurl", value);
-            set_wisp_server(value);
-            await reconnect();
-            saveStatus.innerText = `Wisp server set successfully!`
-        } catch (e) {
-            saveStatus.innerText = `An error occured: ${new String(e).toString()}`;
-        }
+		try {
+			const value = wispInput.value;
+			localStorage.setItem("wispcraft_wispurl", value);
+			set_wisp_server(value);
+			await reconnect();
+			saveStatus.innerText = `Wisp server set successfully!`;
+		} catch (e) {
+			saveStatus.innerText = `An error occured: ${new String(e).toString()}`;
+		}
 	};
 
 	settingsTab.onclick = () => {
@@ -371,10 +371,10 @@ export function createUI() {
 
 	accountSelect.onchange = async () => {
 		const accounts = JSON.parse(
-			localStorage["wispcraft_accounts"]
+			localStorage["wispcraft_accounts"],
 		) as TokenStore[];
 		const account = accounts.find(
-			(account) => account.username === accountSelect.value
+			(account) => account.username === accountSelect.value,
 		);
 		if (account) {
 			authstore.yggToken = await minecraftAuth(account.token);
@@ -391,7 +391,7 @@ export function createUI() {
 			const auth = window.open(
 				`https://microsoft.com/link?otc=${codeGenerator.code}`,
 				"",
-				"height=500,width=350"
+				"height=500,width=350",
 			);
 			await codeGenerator.token;
 			auth?.close();
