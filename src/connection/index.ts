@@ -1,4 +1,4 @@
-import { EaglerProxy } from "..";
+import { EaglerProxy } from "../1.8";
 import { connect_tcp } from "./epoxy";
 import { Buffer } from "../buffer";
 import {
@@ -69,17 +69,20 @@ export class Connection {
 
 	async forward(connectcallback: () => void) {
 		try {
-			const dns = await fetch(`https://cloudflare-dns.com/dns-query?name=_minecraft._tcp.${this.url.hostname}&type=SRV`, {
-				headers: {
-				'Accept': 'application/dns-json'
-				}
-			});
+			const dns = await fetch(
+				`https://cloudflare-dns.com/dns-query?name=_minecraft._tcp.${this.url.hostname}&type=SRV`,
+				{
+					headers: {
+						Accept: "application/dns-json",
+					},
+				},
+			);
 			const dnsResponse = await dns.json();
 			if (dnsResponse.Answer?.length) {
-				const data = dnsResponse.Answer[0].data.split(" ")
-				const port = data[2]
-				const hostname = data[3]
-				this.url = new URL(`java://${hostname}:${port}`)
+				const data = dnsResponse.Answer[0].data.split(" ");
+				const port = data[2];
+				const hostname = data[3];
+				this.url = new URL(`java://${hostname}:${port}`);
 			}
 		} catch {}
 		const conn = await connect_tcp(this.url.host);
@@ -97,7 +100,7 @@ export class Connection {
 				return impl.encryptor.transform(b);
 			}).getWriter(),
 			this.url.hostname,
-			this.url.port ? parseInt(this.url.port) : 25565
+			this.url.port ? parseInt(this.url.port) : 25565,
 		);
 
 		// epoxy -> process -> (hopefully) eagler task
@@ -108,7 +111,7 @@ export class Connection {
 					.pipeThrough(impl.decryptor.transform)
 					.pipeThrough(lengthTransformer())
 					.pipeThrough(impl.decompressor.transform),
-				100
+				100,
 			).getReader();
 
 			while (true) {
