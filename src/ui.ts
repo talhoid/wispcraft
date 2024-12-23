@@ -2,6 +2,24 @@ import { deviceCodeAuth, getProfile, minecraftAuth } from "./auth";
 import { reconnect, set_wisp_server } from "./connection/epoxy";
 import {authstore} from "."; 
 
+let keydownListeners: Array<EventListenerOrEventListenerObject> = [];
+const nativeAddEventListener = window.addEventListener;
+window.addEventListener = (type: string, listener: EventListenerOrEventListenerObject) => {
+  if(type != 'keydown') {
+    return nativeAddEventListener(type, listener);
+  }
+  keydownListeners.push(listener);
+};
+nativeAddEventListener('keydown', (event) => {
+  if(document.activeElement?.tagName == 'INPUT') {
+    return;
+  }
+
+  keydownListeners.map((listener) => {
+    (listener as EventListener)(event);
+  });
+})
+
 export function createUI() {
 	const ui = `
       	<style>
@@ -307,10 +325,6 @@ export function createUI() {
 	if (localStorage.getItem("wispcraft_wispurl") !== null) {
 		wispInput.value = localStorage.getItem("wispcraft_wispurl") as string;
 	}
-
-    wispInput.onclick = () => {
-        wispInput.value = prompt("wisp server:")!;
-    };
 
 	saveButton.onclick = async () => {
 		const value = wispInput.value;
