@@ -1,5 +1,5 @@
 import { deviceCodeAuth, getProfile, minecraftAuth } from "./auth";
-import { reconnect, set_wisp_server } from "./connection/epoxy";
+import { reconnect, set_wisp_server, wisp } from "./connection/epoxy";
 import { authstore, TokenStore } from ".";
 
 let keydownListeners: Array<EventListenerOrEventListenerObject> = [];
@@ -262,6 +262,7 @@ export function createUI() {
                     <p>Wisp Server</p>
                     <input class="input" id="wisp_url" placeholder="wss://anura.pro/" />
                 </div>
+                <p id="save_status"></p>
                 <button class="button" id="save_button">Save</button>
             </div>
 
@@ -300,10 +301,13 @@ export function createUI() {
 			nativeAddEventListener("keydown", listener)
 		)
 	);
-
 	const saveButton = document.querySelector(
 		"#save_button"
 	) as HTMLButtonElement;
+	const saveStatus = document.querySelector(
+		"#save_status"
+	) as HTMLButtonElement;
+
 	const accountSelect = document.querySelector(
 		"#account_select"
 	) as HTMLSelectElement;
@@ -336,10 +340,15 @@ export function createUI() {
 	}
 
 	saveButton.onclick = async () => {
-		const value = wispInput.value;
-		localStorage.setItem("wispcraft_wispurl", value);
-		set_wisp_server(value);
-		await reconnect();
+        try {
+            const value = wispInput.value;
+            localStorage.setItem("wispcraft_wispurl", value);
+            set_wisp_server(value);
+            await reconnect();
+            saveStatus.innerText = `Wisp server set successfully!`
+        } catch (e) {
+            saveStatus.innerText = `An error occured: ${new String(e).toString()}`;
+        }
 	};
 
 	settingsTab.onclick = () => {
