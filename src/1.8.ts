@@ -312,8 +312,9 @@ export class EaglerProxy {
 							let reason = packet.readString();
 							console.error("Disconnect during login: " + reason);
 							let eag = new Packet(Clientbound.EAG_Disconnect);
-							eag.writeBytes([0x08, reason.length]);
-							eag.extend(new Buffer(new TextEncoder().encode(reason)));
+							let legacyreason = chatToLegacyString(JSON.parse(reason));
+							eag.writeBytes([0x08, legacyreason.length]);
+							eag.extend(new Buffer(new TextEncoder().encode(legacyreason)));
 							await this.eagler.write(eag);
 						}
 						break;
