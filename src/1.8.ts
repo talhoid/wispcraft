@@ -13,9 +13,8 @@ import {
 } from "./connection/crypto";
 import { handleSkinCape } from "./skins";
 import "./auth";
-import { getProfile, joinServer } from "./auth";
-import { epoxyFetch } from "./connection/epoxy";
-import { authstore, getProfileFinished } from "./index";
+import { joinServer } from "./auth";
+import { authstore } from "./index";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
 enum State {
@@ -171,7 +170,6 @@ export class EaglerProxy {
 						let username = packet.readString();
 						this.offlineUsername = username;
 
-						await getProfileFinished;
 						let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
 						if (authstore.user) {
 							fakelogin.writeString(authstore.user.name);

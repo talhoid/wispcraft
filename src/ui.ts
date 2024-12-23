@@ -1,6 +1,6 @@
 import { deviceCodeAuth, getProfile, minecraftAuth } from "./auth";
 import { reconnect, set_wisp_server } from "./connection/epoxy";
-import {authstore} from "."; 
+import { authstore, TokenStore } from "."; 
 
 let keydownListeners: Array<EventListenerOrEventListenerObject> = [];
 const nativeAddEventListener = window.addEventListener;
@@ -272,14 +272,6 @@ export function createUI() {
                     <p id="account_status"></p>
                     <button class="button" id="addbutton">Add an account</button>
                 </div>
-
-                <div class="setting">
-                    <p>Remember Me</p>
-                    <label class="checkbox-wrapper">
-                        <input type="checkbox">
-                        <span class="checkbox-mark"></span>
-                    </label>
-                </div>
             </div>
         </div>`;
 
@@ -313,7 +305,7 @@ export function createUI() {
 	}
 
     if (localStorage["wispcraft_accounts"]) {
-        const accounts = JSON.parse(localStorage["wispcraft_accounts"])
+        const accounts = JSON.parse(localStorage["wispcraft_accounts"]) as TokenStore[]
         for (const account of accounts) {
             const option = document.createElement("option");
             option.value = account.username;
@@ -352,14 +344,13 @@ export function createUI() {
 		settingsTab.classList.add("selected");
 	};
 
-    accountSelect.onchange = async (event) => {
-        const accounts = JSON.parse(localStorage["wispcraft_accounts"])
-        for (const account of accounts) {
-            if (account.username === accountSelect.value) {
-                authstore.yggToken = await minecraftAuth(account.token);
-                authstore.user = await getProfile(authstore.yggToken);
-                localStorage["wispcraft_last_used_account"] = authstore.user.name;
-            }
+    accountSelect.onchange = async () => {
+        const accounts = JSON.parse(localStorage["wispcraft_accounts"]) as TokenStore[];
+        const account = accounts.find((account) => account.username === accountSelect.value)
+        if (account) {
+            authstore.yggToken = await minecraftAuth(account.token);
+            authstore.user = await getProfile(authstore.yggToken);
+            localStorage["wispcraft_last_used_account"] = authstore.user.name;
         }
     };
 
@@ -392,7 +383,7 @@ export function createUI() {
             addButton.disabled = false;
             localStorage["wispcraft_last_used_account"] = authstore.user.name;
         } catch (e) {
-            accountStatus.innerText = `An error occured ${new String(e).toString()}`
+            accountStatus.innerText = `An error occured: ${new String(e).toString()}`
         }
     }
 

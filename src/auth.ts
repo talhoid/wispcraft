@@ -269,5 +269,3 @@ export async function joinServer(
 		},
 	);
 }
-window["deviceCodeAuth"] = deviceCodeAuth;
-window["minecraftAuth"] = minecraftAuth;

@@ -1,29 +1,33 @@
-import { getProfile, UserInfo } from "./auth";
+import { getProfile, minecraftAuth, UserInfo } from "./auth";
 import { epoxyFetch } from "./connection/epoxy";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
 
 const nativeFetch = fetch;
-type AuthStore = {
+export type AuthStore = {
 	user: UserInfo | null;
 	yggToken: string;
 	yggRefresh: string;
 };
 
-export let authstore: AuthStore;
-export const getProfileFinished: Promise<void> = checkAuth();
+export type TokenStore = {
+    username: string
+    token: string
+};
 
-async function checkAuth() {
-	authstore = {
-		user: null,
-		yggToken: localStorage["yggToken"],
-		yggRefresh: localStorage["yggRefresh"],
-	};
-	if (!authstore.yggToken) return;
+export let authstore: AuthStore = {
+	user: null,
+	yggToken: "",
+	yggRefresh: ""
+};
 
-	try {
+if (localStorage["wispcraft_accounts"]) {
+	const accounts = JSON.parse(localStorage["wispcraft_accounts"]) as TokenStore[];
+	const account = accounts.find((account) => account.username === localStorage["wispcraft_last_used_account"])
+	if (account) {
+		authstore.yggToken = await minecraftAuth(account.token);
 		authstore.user = await getProfile(authstore.yggToken);
-	} catch (e) {}
-}
+	}
+};
 
 // replace websocket with our own
 window.WebSocket = makeFakeWebSocket();
