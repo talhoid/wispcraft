@@ -25,7 +25,7 @@ const commonPlugins = () => [
 				let hash = JSON.stringify(
 					execSync("git rev-parse --short HEAD", {
 						encoding: "utf-8",
-					}).replace(/\r?\n|\r/g, ""),
+					}).replace(/\r?\n|\r/g, "")
 				);
 
 				return hash;

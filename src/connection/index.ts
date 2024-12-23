@@ -76,7 +76,7 @@ export class Connection {
 					headers: {
 						Accept: "application/dns-json",
 					},
-				},
+				}
 			);
 			const dnsResponse = await dns.json();
 			if (dnsResponse.Answer?.length) {
@@ -87,7 +87,7 @@ export class Connection {
 			}
 		} catch {}
 		const conn = await connect_tcp(
-			connectUrl ? connectUrl.host : this.url.host,
+			connectUrl ? connectUrl.host : this.url.host
 		);
 		connectcallback();
 		const writer = bufferWriter(conn.write.getWriter());
@@ -103,7 +103,7 @@ export class Connection {
 				return impl.encryptor.transform(b);
 			}).getWriter(),
 			this.url.hostname,
-			this.url.port ? parseInt(this.url.port) : 25565,
+			this.url.port ? parseInt(this.url.port) : 25565
 		);
 
 		// epoxy -> process -> (hopefully) eagler task
@@ -116,7 +116,7 @@ export class Connection {
 					.pipeThrough(lengthTransformer())
 					.pipeThrough(impl.decompressor.transform),
 				100,
-				() => backlog++,
+				() => backlog++
 			).getReader();
 
 			// setInterval(() => console.log("epoxy backlog ", backlog), 1000);
@@ -138,7 +138,7 @@ export class Connection {
 			const reader = eagerlyPoll<Buffer>(
 				this.processIn,
 				100,
-				() => backlog++,
+				() => backlog++
 			).getReader();
 
 			// setInterval(() => console.log("eagler backlog ", backlog), 1000);

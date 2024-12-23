@@ -340,15 +340,15 @@ export function createUI() {
 	}
 
 	saveButton.onclick = async () => {
-        try {
-            const value = wispInput.value;
-            localStorage.setItem("wispcraft_wispurl", value);
-            set_wisp_server(value);
-            await reconnect();
-            saveStatus.innerText = `Wisp server set successfully!`
-        } catch (e) {
-            saveStatus.innerText = `An error occured: ${new String(e).toString()}`;
-        }
+		try {
+			const value = wispInput.value;
+			localStorage.setItem("wispcraft_wispurl", value);
+			set_wisp_server(value);
+			await reconnect();
+			saveStatus.innerText = `Wisp server set successfully!`;
+		} catch (e) {
+			saveStatus.innerText = `An error occured: ${new String(e).toString()}`;
+		}
 	};
 
 	settingsTab.onclick = () => {

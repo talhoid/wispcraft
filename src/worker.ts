@@ -2,7 +2,7 @@ import { Connection } from "./connection";
 
 let conn: Connection;
 
-export const authInfo = {yggToken: "", user: {id: ""}};
+export const authInfo = { yggToken: "", user: { id: "" } };
 
 self.onmessage = ({ data }) => {
 	if (data.ping) {
@@ -14,10 +14,9 @@ self.onmessage = ({ data }) => {
 		return;
 	}
 	if (data.userProfile) {
-		
 		authInfo.yggToken = data.userProfile.yggToken;
 		authInfo.user = data.userProfile.user;
-		console.log("Got userinfo: ", authInfo)
+		console.log("Got userinfo: ", authInfo);
 	}
 
 	conn = new Connection(data.uri);
@@ -29,7 +28,7 @@ self.onmessage = ({ data }) => {
 				eaglerOut: conn.eaglerOut,
 			},
 			// @ts-ignore
-			[conn.eaglerIn, conn.eaglerOut],
+			[conn.eaglerIn, conn.eaglerOut]
 		);
 	});
 };

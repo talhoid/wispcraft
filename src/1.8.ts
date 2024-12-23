@@ -13,7 +13,7 @@ import {
 import { handleSkinCape } from "./skins";
 import "./auth";
 import { joinServer } from "./auth";
-import {authInfo} from "./worker"
+import { authInfo } from "./worker";
 // import { authstore } from "./index";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
@@ -146,7 +146,7 @@ export class EaglerProxy {
 		eaglerOut: BytesWriter,
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
-		public serverPort: number,
+		public serverPort: number
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
@@ -298,7 +298,7 @@ export class EaglerProxy {
 									0,
 									0,
 									canvas.width,
-									canvas.height,
+									canvas.height
 								).data;
 								this.eagler.write(new Buffer(new Uint8Array(pixels)));
 							};
@@ -359,7 +359,7 @@ export class EaglerProxy {
 									...new TextEncoder().encode(serverid),
 									...sharedSecret,
 									...publicKey.inner,
-								]),
+								])
 							);
 
 							const [modulus, exponent] = await loadKey(publicKey.inner);
@@ -367,7 +367,7 @@ export class EaglerProxy {
 							let encryptedChallenge = encryptRSA(
 								verifyToken.inner,
 								modulus,
-								exponent,
+								exponent
 							);
 							console.log("joining with: ", authInfo);
 							await joinServer(authInfo.yggToken, digest, authInfo.user.id);

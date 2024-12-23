@@ -28,24 +28,30 @@ interface OAuthResponse {
 	scope: string;
 	refresh_token: string;
 }
-const cookies: any[] = [];
+let cookies: any[];
 export async function deviceCodeAuth() {
 	// TOOD: Type
-	const deviceCodeRes = await epoxyFetch("https://login.live.com/oauth20_connect.srf", {
+	const deviceCodeRes = await epoxyFetch(
+		"https://login.live.com/oauth20_connect.srf",
+		{
 			method: "POST",
-			body: new URLSearchParams({ scope: "service::user.auth.xboxlive.com::MBI_SSL", client_id: CLIENT_ID, response_type: 'device_code' }).toString(),
+			body: new URLSearchParams({
+				scope: "service::user.auth.xboxlive.com::MBI_SSL",
+				client_id: CLIENT_ID,
+				response_type: "device_code",
+			}).toString(),
 			headers: {
-				"Content-Type": "application/x-www-form-urlencoded"
+				"Content-Type": "application/x-www-form-urlencoded",
 			},
 		}
 	);
 	console.log(deviceCodeRes);
 	if (deviceCodeRes.status !== 200) {
-		throw Error('Failed to request live.com device code')
-	};
-	const setCookie = (deviceCodeRes as any).rawHeaders["set-cookie"] as string
-	const [keyval] = setCookie.split(';')
-	cookies.push(keyval)
+		throw Error("Failed to request live.com device code");
+	}
+
+	const setCookie = (deviceCodeRes as any).rawHeaders["set-cookie"] as string;
+	cookies = setCookie.split(";");
 
 	interface DeviceCodeResponse {
 		device_code: string;
@@ -77,7 +83,7 @@ export async function deviceCodeAuth() {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/x-www-form-urlencoded",
-						Cookie: cookies.join("; ")
+						Cookie: cookies.join("; "),
 					},
 					body: new URLSearchParams({
 						client_id: CLIENT_ID,
