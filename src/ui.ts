@@ -353,14 +353,12 @@ export function createUI() {
 	};
 
     accountSelect.onchange = async (event) => {
-        console.log("blah blah")
-        console.log(event)
         const accounts = JSON.parse(localStorage["wispcraft_accounts"])
         for (const account of accounts) {
             if (account.username === accountSelect.value) {
-                console.log("found!!!!")
                 authstore.yggToken = await minecraftAuth(account.token);
                 authstore.user = await getProfile(authstore.yggToken);
+                localStorage["wispcraft_last_used_account"] = authstore.user.name;
             }
         }
     };
@@ -373,15 +371,16 @@ export function createUI() {
             const auth = window.open(`https://microsoft.com/link`, "", 'height=500,width=350')
             await codeGenerator.token;
             auth?.close()
-            
-            authstore.yggToken = await minecraftAuth(await codeGenerator.token)
+
+            const token = await codeGenerator.token;
+            authstore.yggToken = await minecraftAuth(token)
             authstore.user = await getProfile(authstore.yggToken);
             const localAuthStore = localStorage["wispcraft_accounts"]
             if (!localAuthStore) {
-                localStorage["wispcraft_accounts"] = JSON.stringify([{ username: authstore.user.name, token: authstore.yggToken }])
+                localStorage["wispcraft_accounts"] = JSON.stringify([{ username: authstore.user.name, token }])
             } else {
                 const accounts = JSON.parse(localAuthStore);
-                accounts.push({ username: authstore.user.name, token: authstore.yggToken });
+                accounts.push({ username: authstore.user.name, token });
                 localStorage["wispcraft_accounts"] = JSON.stringify(accounts)
             }
             const selector = document.createElement("option");
@@ -389,7 +388,9 @@ export function createUI() {
             selector.innerText = authstore.user.name;
             accountSelect.add(selector);
             accountStatus.innerText = "";
+            accountSelect.value = authstore.user.name;
             addButton.disabled = false;
+            localStorage["wispcraft_last_used_account"] = authstore.user.name;
         } catch (e) {
             accountStatus.innerText = `An error occured ${new String(e).toString()}`
         }
