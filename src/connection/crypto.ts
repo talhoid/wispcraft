@@ -468,7 +468,7 @@ export async function loadKey(keyBytes: Uint8Array): Promise<[bigint, bigint]> {
 			hash: "SHA-256",
 		},
 		true,
-		["encrypt"],
+		["encrypt"]
 	);
 	// jwk provides the magics as json
 	let jwk = await crypto.subtle.exportKey("jwk", key);
@@ -521,9 +521,9 @@ export function encryptRSA(data: Uint8Array, n: bigint, e: bigint): Uint8Array {
 					...padding.map((byte) => byte.toString(16).padStart(2, "0")),
 					"00",
 					...Array.from(messageBytes).map((byte: any) =>
-						byte.toString(16).padStart(2, "0"),
+						byte.toString(16).padStart(2, "0")
 					),
-				].join(""),
+				].join("")
 		);
 	};
 	const paddedMessage = pkcs1v15Pad(data, n);
@@ -536,7 +536,7 @@ export function encryptRSA(data: Uint8Array, n: bigint, e: bigint): Uint8Array {
 
 	// ????
 	return new Uint8Array(
-		Array.from(hex.match(/.{2}/g) || []).map((byte) => parseInt(byte, 16)),
+		Array.from(hex.match(/.{2}/g) || []).map((byte) => parseInt(byte, 16))
 	);
 }
 

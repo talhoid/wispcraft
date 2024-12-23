@@ -10,26 +10,31 @@ export type AuthStore = {
 };
 
 export type TokenStore = {
-    username: string
-    token: string
+	username: string;
+	token: string;
 };
 
 export let authstore: AuthStore = {
 	user: null,
 	yggToken: "",
-	yggRefresh: ""
+	yggRefresh: "",
 };
 
 if (localStorage["wispcraft_accounts"]) {
-	const accounts = JSON.parse(localStorage["wispcraft_accounts"]) as TokenStore[];
-	const account = accounts.find((account) => account.username === localStorage["wispcraft_last_used_account"])
+	const accounts = JSON.parse(
+		localStorage["wispcraft_accounts"]
+	) as TokenStore[];
+	const account = accounts.find(
+		(account) =>
+			account.username === localStorage["wispcraft_last_used_account"]
+	);
 	if (account) {
 		(async () => {
 			authstore.yggToken = await minecraftAuth(account.token);
 			authstore.user = await getProfile(authstore.yggToken);
 		})();
 	}
-};
+}
 
 // replace websocket with our own
 window.WebSocket = makeFakeWebSocket();

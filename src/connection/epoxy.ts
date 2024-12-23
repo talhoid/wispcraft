@@ -13,7 +13,6 @@ let connectedwisp = "";
 let initted = false;
 let epoxy: EpoxyClient | null = null;
 
-initEpoxy();
 async function create() {
 	if (!initted) {
 		await initEpoxy();

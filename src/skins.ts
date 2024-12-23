@@ -60,11 +60,12 @@ async function funnyFetch(url: string): Promise<Tex> {
 	try {
 		if (url.startsWith("profile://")) {
 			uuid = url.slice(10);
-			const prefix =
-				fetchMode
-					? "https://sessionserver.mojang.com/session/minecraft/profile/"
-					: "https://crafthead.net/profile/";
-			const texData = await getTextureDataByProfileResponse(await window.fetch(prefix + uuid));
+			const prefix = fetchMode
+				? "https://sessionserver.mojang.com/session/minecraft/profile/"
+				: "https://crafthead.net/profile/";
+			const texData = await getTextureDataByProfileResponse(
+				await window.fetch(prefix + uuid)
+			);
 			url = texData.skin;
 			cape = texData.cape;
 			slim = texData.slim;
@@ -403,9 +404,7 @@ export async function handleSkinCape(
 		} else if (id == 0x06) {
 			const part = packet.take(16);
 			const url = new TextDecoder().decode(
-				packet.take(
-					packet.take(2).readUShort()
-				).inner
+				packet.take(packet.take(2).readUShort()).inner
 			);
 			if (new URL(url).hostname != "textures.minecraft.net") {
 				return Buffer.new();

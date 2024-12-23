@@ -42,7 +42,7 @@ export async function deviceCodeAuth() {
 				client_id: CLIENT_ID,
 				scope: "XboxLive.signin offline_access",
 			}).toString(),
-		},
+		}
 	);
 
 	interface DeviceCodeResponse {
@@ -81,7 +81,7 @@ export async function deviceCodeAuth() {
 						grant_type: "urn:ietf:params:oauth:grant-type:device_code",
 						device_code: device_code,
 					}).toString(),
-				},
+				}
 			);
 
 			const pollingResponse: TokenPollingResponse = await tokenRes.json();
@@ -121,7 +121,7 @@ async function xboxAuth(msToken: string): Promise<string> {
 			"RelyingParty": "http://auth.xboxlive.com",
 			"TokenType": "JWT"
  		}`,
-		},
+		}
 	);
 	const json = await res.json();
 	if (!json["Token"]) throw new Error("xbox live did not return a token");
@@ -130,7 +130,7 @@ async function xboxAuth(msToken: string): Promise<string> {
 }
 
 async function xstsAuth(
-	xboxToken: string,
+	xboxToken: string
 ): Promise<{ token: string; userHash: string }> {
 	const res = await epoxyFetch(
 		"https://xsts.auth.xboxlive.com/xsts/authorize",
@@ -148,7 +148,7 @@ async function xstsAuth(
 				RelyingParty: "rp://api.minecraftservices.com/",
 				TokenType: "JWT",
 			}),
-		},
+		}
 	);
 	const json = await res.json();
 
@@ -161,14 +161,14 @@ async function xstsAuth(
 				throw new Error("xsts says this account does not have a xbox account");
 			case 2148916235:
 				throw new Error(
-					"xsts says xbox live is not available in this account's country",
+					"xsts says xbox live is not available in this account's country"
 				);
 			case 2148916236:
 			case 2148916237:
 				throw new Error("xsts says this account needs adult verification");
 			case 2148916238:
 				throw new Error(
-					"xsts says this account is under 18 and needs to be added to a family",
+					"xsts says this account is under 18 and needs to be added to a family"
 				);
 			case 2148916262:
 			default:
@@ -200,7 +200,7 @@ async function mcAuth(xstsToken: string, xstsHash: string): Promise<string> {
 			body: JSON.stringify({
 				identityToken: `XBL3.0 x=${xstsHash};${xstsToken}`,
 			}),
-		},
+		}
 	);
 	const json = await res.json();
 	const token = json["access_token"];
@@ -216,13 +216,13 @@ export async function checkOwnership(mcToken: string): Promise<boolean> {
 			headers: {
 				Authorization: `Bearer ${mcToken}`,
 			},
-		},
+		}
 	);
 	const json = await res.json();
 	return (
 		json.items?.some(
 			(item: { name: string }) =>
-				item.name === "product_minecraft" || item.name === "game_minecraft",
+				item.name === "product_minecraft" || item.name === "game_minecraft"
 		) ?? false
 	);
 }
@@ -234,7 +234,7 @@ export async function getProfile(mcToken: string): Promise<UserInfo> {
 			headers: {
 				Authorization: `Bearer ${mcToken}`,
 			},
-		},
+		}
 	);
 	const json = await res.json();
 	if (!json["id"] || !json["name"])
@@ -252,7 +252,7 @@ export async function minecraftAuth(msToken: string): Promise<string> {
 export async function joinServer(
 	mcToken: string,
 	digest: string,
-	uuid: string,
+	uuid: string
 ) {
 	const res = await epoxyFetch(
 		"https://sessionserver.mojang.com/session/minecraft/join",
@@ -266,6 +266,6 @@ export async function joinServer(
 				serverId: digest,
 				accessToken: mcToken,
 			}),
-		},
+		}
 	);
 }

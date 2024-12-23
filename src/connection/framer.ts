@@ -156,7 +156,7 @@ export class Compressor {
 export function eagerlyPoll<T>(
 	stream: ReadableStream<T>,
 	buffer: number,
-	cb: () => void,
+	cb: () => void
 ): ReadableStream<T> {
 	return new ReadableStream(
 		{
