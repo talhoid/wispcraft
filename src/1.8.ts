@@ -1,6 +1,5 @@
 import { Buffer } from "./buffer";
 import { BytesWriter, Compressor, Decompressor } from "./connection/framer";
-import { makeFakeWebSocket } from "./connection/fakewebsocket";
 import {
 	bytesToUuid,
 	Decryptor,
@@ -14,7 +13,7 @@ import {
 import { handleSkinCape } from "./skins";
 import "./auth";
 import { joinServer } from "./auth";
-import { authstore } from "./index";
+// import { authstore } from "./index";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
 enum State {
@@ -137,7 +136,7 @@ export class EaglerProxy {
 		eaglerOut: BytesWriter,
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
-		public serverPort: number
+		public serverPort: number,
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
@@ -145,6 +144,7 @@ export class EaglerProxy {
 
 	// consumes packets from eagler, sends them to the upstream server
 	async eaglerRead(packet: Buffer) {
+		packet = new Buffer(packet.inner); // proto bug
 		switch (this.state) {
 			case State.Handshaking:
 				switch (packet.readVarInt()) {
@@ -171,15 +171,15 @@ export class EaglerProxy {
 						this.offlineUsername = username;
 
 						let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
-						if (authstore.user) {
-							fakelogin.writeString(authstore.user.name);
-							fakelogin.writeBytes(
-								authstore.user.id.split("").map((x) => parseInt(x))
-							);
-						} else {
-							fakelogin.writeString(this.offlineUsername);
-							fakelogin.writeBytes(offlineUUID(username));
-						}
+						// if (authstore.user) {
+						// 	fakelogin.writeString(authstore.user.name);
+						// 	fakelogin.writeBytes(
+						// 		authstore.user.id.split("").map((x) => parseInt(x)),
+						// 	);
+						// } else {
+						fakelogin.writeString(this.offlineUsername);
+						fakelogin.writeBytes(offlineUUID(username));
+						/* } */
 						await this.eagler.write(fakelogin);
 						return;
 					case Serverbound.EAG_FinishLogin:
@@ -195,11 +195,11 @@ export class EaglerProxy {
 						await this.net.write(handshake);
 
 						let loginstart = new Packet(Serverbound.LoginStart);
-						if (authstore.user) {
-							loginstart.writeString(authstore.user.name);
-						} else {
-							loginstart.writeString(this.offlineUsername);
-						}
+						// if (authstore.user) {
+						// 	loginstart.writeString(authstore.user.name);
+						// } else {
+						loginstart.writeString(this.offlineUsername);
+						// }
 						await this.net.write(loginstart);
 						break;
 				}
@@ -240,6 +240,7 @@ export class EaglerProxy {
 
 	// consumes packets from the network, sends them to eagler
 	async epoxyRead(packet: Buffer) {
+		packet = new Buffer(packet.inner); // proto bug
 		const pk = packet.readVarInt();
 		switch (this.state) {
 			case State.Handshaking:
@@ -287,7 +288,7 @@ export class EaglerProxy {
 									0,
 									0,
 									canvas.width,
-									canvas.height
+									canvas.height,
 								).data;
 								this.eagler.write(new Buffer(new Uint8Array(pixels)));
 							};
@@ -331,15 +332,15 @@ export class EaglerProxy {
 						{
 							this.isPremium = true;
 
-							if (authstore.user == null) {
-								let eag = new Packet(Clientbound.EAG_Disconnect);
-								const reason =
-									"This server requires authentication, but you are not logged in!\n Connect to Wispcraft Settings to log in with Microsoft";
-								eag.writeBytes([0x08]);
-								eag.writeString(reason);
-								await this.eagler.write(eag);
-								return;
-							}
+							// if (authstore.user == null) {
+							// 	let eag = new Packet(Clientbound.EAG_Disconnect);
+							// 	const reason =
+							// 		"This server requires authentication, but you are not logged in!\n Connect to Wispcraft Settings to log in with Microsoft";
+							// 	eag.writeBytes([0x08]);
+							// 	eag.writeString(reason);
+							// 	await this.eagler.write(eag);
+							// 	return;
+							// }
 
 							let serverid = packet.readString();
 							console.log("Server ID: " + serverid);
@@ -352,7 +353,7 @@ export class EaglerProxy {
 									...new TextEncoder().encode(serverid),
 									...sharedSecret,
 									...publicKey.inner,
-								])
+								]),
 							);
 
 							const [modulus, exponent] = await loadKey(publicKey.inner);
@@ -360,10 +361,10 @@ export class EaglerProxy {
 							let encryptedChallenge = encryptRSA(
 								verifyToken.inner,
 								modulus,
-								exponent
+								exponent,
 							);
 
-							await joinServer(authstore.yggToken, digest, authstore.user.id);
+							// await joinServer(authstore.yggToken, digest, authstore.user.id);
 
 							let response = new Packet(Serverbound.EncryptionResponse);
 							response.writeVariableData(new Buffer(encrypedSecret));

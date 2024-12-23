@@ -40,8 +40,8 @@ function link<T>(): [ReadableStream<T>, WritableStream<T>] {
 
 export class Connection {
 	// used by fake websocket
-	eaglerIn: BytesWriter;
-	eaglerOut: ReadableStreamDefaultReader<Buffer | string>;
+	eaglerIn: WritableStream<Buffer>;
+	eaglerOut: ReadableStream<Buffer | string>;
 
 	// linked to eaglerIn, has packets the client sends
 	processIn: ReadableStream<Buffer>;
@@ -56,10 +56,10 @@ export class Connection {
 	constructor(uri: string) {
 		const [processIn, eaglerIn] = link<Buffer>();
 		this.processIn = processIn;
-		this.eaglerIn = eaglerIn.getWriter();
+		this.eaglerIn = eaglerIn;
 
 		const [eaglerOut, processOut] = link<Buffer>();
-		this.eaglerOut = eaglerOut.getReader();
+		this.eaglerOut = eaglerOut;
 		this.processOut = processOut.getWriter();
 
 		this.url = new URL(uri.slice(uri.toLowerCase().indexOf("://") + 3));
@@ -76,7 +76,7 @@ export class Connection {
 					headers: {
 						Accept: "application/dns-json",
 					},
-				}
+				},
 			);
 			const dnsResponse = await dns.json();
 			if (dnsResponse.Answer?.length) {
@@ -87,7 +87,7 @@ export class Connection {
 			}
 		} catch {}
 		const conn = await connect_tcp(
-			connectUrl ? connectUrl.host : this.url.host
+			connectUrl ? connectUrl.host : this.url.host,
 		);
 		connectcallback();
 		const writer = bufferWriter(conn.write.getWriter());
@@ -103,7 +103,7 @@ export class Connection {
 				return impl.encryptor.transform(b);
 			}).getWriter(),
 			this.url.hostname,
-			this.url.port ? parseInt(this.url.port) : 25565
+			this.url.port ? parseInt(this.url.port) : 25565,
 		);
 
 		// epoxy -> process -> (hopefully) eagler task
@@ -116,10 +116,10 @@ export class Connection {
 					.pipeThrough(lengthTransformer())
 					.pipeThrough(impl.decompressor.transform),
 				100,
-				() => backlog++
+				() => backlog++,
 			).getReader();
 
-			setInterval(() => console.log("epoxy backlog ", backlog), 1000);
+			// setInterval(() => console.log("epoxy backlog ", backlog), 1000);
 
 			while (true) {
 				const { done, value } = await reader.read();
@@ -138,10 +138,10 @@ export class Connection {
 			const reader = eagerlyPoll<Buffer>(
 				this.processIn,
 				100,
-				() => backlog++
+				() => backlog++,
 			).getReader();
 
-			setInterval(() => console.log("eagler backlog ", backlog), 1000);
+			// setInterval(() => console.log("eagler backlog ", backlog), 1000);
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done || !value) return;

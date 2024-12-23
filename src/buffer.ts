@@ -142,6 +142,3 @@ export class Buffer {
 		this.extend(new Buffer(data));
 	}
 }
-
-// @ts-ignore
-window.Buffer = Buffer;

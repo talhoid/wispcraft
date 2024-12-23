@@ -5,30 +5,33 @@ import { showUI } from "../ui";
 import wispcraft from "./wispcraft.png";
 
 class WispWS extends EventTarget {
-	inner: Connection;
 	url: string;
+	worker: Worker;
+
+	eaglerIn?: WritableStreamDefaultWriter<Buffer>;
+	eaglerOut?: ReadableStreamDefaultReader<Buffer | string>;
 
 	constructor(uri: string) {
 		super();
 
 		this.url = uri;
-		this.inner = new Connection(uri);
-	}
+		this.worker = new Worker("./dist/worker.js");
 
-	start() {
-		this.inner.forward(() => {
+		this.worker.onmessage = async ({ data }) => {
+			this.eaglerIn = data.eaglerIn.getWriter();
+			this.eaglerOut = data.eaglerOut.getReader();
+
 			this.dispatchEvent(new Event("open"));
-		});
-		(async () => {
+
 			try {
 				while (true) {
-					const { done, value } = await this.inner.eaglerOut.read();
+					const { done, value } = await this.eaglerOut!.read();
 					if (done || !value) break;
 
 					this.dispatchEvent(
 						new MessageEvent("message", {
 							data: typeof value === "string" ? value : value.inner,
-						})
+						}),
 					);
 				}
 				this.dispatchEvent(new Event("close"));
@@ -36,14 +39,18 @@ class WispWS extends EventTarget {
 				console.error(err);
 				this.dispatchEvent(new Event("error"));
 			}
-		})();
+		};
+	}
+
+	start() {
+		this.worker.postMessage({ uri: this.url });
 	}
 
 	send(chunk: Uint8Array | ArrayBuffer | string) {
 		let buf: Buffer;
 		if (typeof chunk == "string") {
 			if (chunk.toLowerCase() == "accept: motd") {
-				this.inner.ping();
+				this.worker.postMessage({ ping: true });
 			}
 			return;
 		} else if (chunk instanceof ArrayBuffer) {
@@ -51,12 +58,14 @@ class WispWS extends EventTarget {
 		} else {
 			buf = new Buffer(chunk, true);
 		}
-		this.inner.eaglerIn.write(buf);
+		if (!this.eaglerIn) throw new Error("not connected");
+		this.eaglerIn.write(buf);
 	}
 
 	close() {
 		try {
-			this.inner.eaglerIn.close();
+			this.worker.postMessage({ close: true });
+			// terminate too?
 		} catch (err) {}
 	}
 }
@@ -88,7 +97,7 @@ class SettingsWS extends EventTarget {
 							motd: ["Sign in with Microsoft", "Configure Proxy URL"],
 						},
 					}),
-				})
+				}),
 			);
 			let image = new Image();
 			image.src = wispcraft;
@@ -100,7 +109,7 @@ class SettingsWS extends EventTarget {
 				ctx.drawImage(image, 0, 0);
 				let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 				this.dispatchEvent(
-					new MessageEvent("message", { data: new Uint8Array(pixels) })
+					new MessageEvent("message", { data: new Uint8Array(pixels) }),
 				);
 			};
 		} else {

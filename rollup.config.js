@@ -25,7 +25,7 @@ const commonPlugins = () => [
 				let hash = JSON.stringify(
 					execSync("git rev-parse --short HEAD", {
 						encoding: "utf-8",
-					}).replace(/\r?\n|\r/g, "")
+					}).replace(/\r?\n|\r/g, ""),
 				);
 
 				return hash;
@@ -43,6 +43,17 @@ const configs = [
 			file: "dist/index.js",
 			format: "umd",
 			name: "wispcraft",
+			sourcemap: true,
+			exports: "named",
+		},
+		plugins: commonPlugins(),
+	},
+	{
+		input: "./src/worker.ts",
+		output: {
+			file: "dist/worker.js",
+			format: "umd",
+			name: "wispworker",
 			sourcemap: true,
 			exports: "named",
 		},

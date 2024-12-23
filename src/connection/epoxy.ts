@@ -6,8 +6,8 @@ import initEpoxy, {
 
 export let wisp =
 	new URLSearchParams(location.search).get("wisp") ||
-	localStorage.getItem("wispcraft_wispurl") ||
-	"ws://localhost:5001/";
+	// localStorage.getItem("wispcraft_wispurl") ||
+	"wss://anura.pro/";
 let connectedwisp = "";
 
 let initted = false;
