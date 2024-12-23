@@ -1,3 +1,4 @@
+import { deviceCodeAuth, minecraftAuth } from "./auth";
 import { reconnect, set_wisp_server } from "./connection/epoxy";
 
 export function createUI() {
@@ -254,9 +255,11 @@ export function createUI() {
             <div class="content hidden" id="auth">
                 <div class="setting">
                     <p>Microsoft Accounts</p>
-                    <select name="pets" id="pet-select" class="select">
+                    <select name="accounts" id="account_select" class="select">
                         <option selected disabled>Choose an account</option>
+                        <option value="add-new"></option>
                     </select>
+                    <span id="account_status"></span>
                 </div>
 
                 <div class="setting">
@@ -283,10 +286,16 @@ export function createUI() {
 	const saveButton = document.querySelector(
 		"#save_button"
 	) as HTMLButtonElement;
+    const accountSelect = document.querySelector("#account_select") as HTMLSelectElement;
+    const accountStatus = document.querySelector("#account_status") as HTMLSpanElement;
 
 	if (localStorage.getItem("wispcraft_wispurl") !== null) {
 		wispInput.value = localStorage.getItem("wispcraft_wispurl") as string;
 	}
+
+    wispInput.onfocus = () => {
+        wispInput.value = prompt("wisp server:")!;
+    };
 
 	saveButton.onclick = async () => {
 		const value = wispInput.value;
