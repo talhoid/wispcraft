@@ -7,14 +7,28 @@ import { execSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import dataUri from "@rollup/plugin-data-uri";
 import url from "@rollup/plugin-url";
+import { readFileSync } from "fs";
+
+const raw = () => {
+	return {
+		name: "raw",
+		load(id) {
+			if (id.endsWith("?raw")) {
+				const content = readFileSync(id.replace("?raw", "")).toString("utf-8");
+				return `export default \`${btoa(content)}\``;
+			}
+		},
+	};
+};
 
 const pkg = JSON.parse(await readFile("package.json"));
 
 const commonPlugins = () => [
+	raw(),
 	typescript(),
 	dataUri(),
 	url({ limit: 9999999999999999 }),
-	terser(),
+	// terser(),
 	nodeResolve({
 		browser: true,
 	}),
@@ -25,7 +39,7 @@ const commonPlugins = () => [
 				let hash = JSON.stringify(
 					execSync("git rev-parse --short HEAD", {
 						encoding: "utf-8",
-					}).replace(/\r?\n|\r/g, "")
+					}).replace(/\r?\n|\r/g, ""),
 				);
 
 				return hash;

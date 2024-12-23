@@ -59,6 +59,7 @@ export class Connection {
 		wispurl: string,
 		private authStore: AuthStore,
 	) {
+		console.log(uri, wispurl);
 		initWisp(wispurl);
 
 		const [processIn, eaglerIn] = link<Buffer>();
@@ -69,6 +70,7 @@ export class Connection {
 		this.eaglerOut = eaglerOut;
 		this.processOut = processOut.getWriter();
 
+		console.log(uri);
 		this.url = new URL(uri.slice(uri.toLowerCase().indexOf("://") + 3));
 		if (!this.url.port) this.url.port = "25565";
 		if (this.url.protocol != "java:") throw new Error("invalid protocol");

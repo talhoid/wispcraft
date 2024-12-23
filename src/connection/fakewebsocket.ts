@@ -3,6 +3,7 @@ import { Buffer } from "../buffer";
 import { showUI } from "../ui";
 // @ts-ignore typescript sucks
 import wispcraft from "./wispcraft.png";
+import DataWorker from "./loader";
 
 class WispWS extends EventTarget {
 	url: string;
@@ -16,9 +17,8 @@ class WispWS extends EventTarget {
 		super();
 
 		this.url = uri;
-		this.worker = new Worker("worker.js");
+		this.worker = new Worker("data:text/javascript;base64," + DataWorker);
 
-		this.worker.postMessage({ userProfile: authstore });
 		this.readyState = WebSocket.CONNECTING;
 		this.worker.onmessage = async ({ data }) => {
 			this.eaglerIn = data.eaglerIn.getWriter();

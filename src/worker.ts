@@ -12,6 +12,7 @@ self.onmessage = ({ data }) => {
 		return;
 	}
 
+	console.log(data);
 	conn = new Connection(data.uri, data.wisp, data.authstore);
 	conn.forward(() => {
 		self.postMessage(
