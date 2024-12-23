@@ -17,10 +17,8 @@ class WispWS extends EventTarget {
 
 		this.url = uri;
 		this.worker = new Worker("worker.js");
-		this.worker.postMessage({
-			user: authstore.user,
-			ygg: authstore.yggToken,
-		});
+
+		this.worker.postMessage({ userProfile: authstore });
 		this.readyState = WebSocket.CONNECTING;
 		this.worker.onmessage = async ({ data }) => {
 			this.eaglerIn = data.eaglerIn.getWriter();
