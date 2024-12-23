@@ -119,7 +119,7 @@ export class Connection {
 				() => backlog++
 			).getReader();
 
-			setInterval(() => console.log("epoxy backlog ", backlog), 1000);
+			// setInterval(() => console.log("epoxy backlog ", backlog), 1000);
 
 			while (true) {
 				const { done, value } = await reader.read();
@@ -141,7 +141,7 @@ export class Connection {
 				() => backlog++
 			).getReader();
 
-			setInterval(() => console.log("eagler backlog ", backlog), 1000);
+			// setInterval(() => console.log("eagler backlog ", backlog), 1000);
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done || !value) return;

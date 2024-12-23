@@ -116,6 +116,15 @@ function chatToLegacyString(chat: ChatSchema) {
 	return str;
 }
 
+function createEagKick(reason: string): Buffer {
+	let eag = Buffer.new();
+	let str = new TextEncoder().encode(reason);
+	eag.writeBytes([Clientbound.EAG_Disconnect, 0x08]);
+	eag.writeUShort(str.length);
+	eag.extend(new Buffer(str));
+	return eag;
+}
+
 export class EaglerProxy {
 	loggedIn: boolean = false;
 	handshook: boolean = false;
@@ -309,10 +318,8 @@ export class EaglerProxy {
 						{
 							let reason = packet.readString();
 							console.error("Disconnect during login: " + reason);
-							let eag = new Packet(Clientbound.EAG_Disconnect);
 							let legacyreason = chatToLegacyString(JSON.parse(reason));
-							eag.writeBytes([0x08, legacyreason.length]);
-							eag.extend(new Buffer(new TextEncoder().encode(legacyreason)));
+							let eag = createEagKick(legacyreason);
 							await this.eagler.write(eag);
 						}
 						break;
@@ -332,11 +339,9 @@ export class EaglerProxy {
 							this.isPremium = true;
 
 							if (authstore.user == null) {
-								let eag = new Packet(Clientbound.EAG_Disconnect);
 								const reason =
 									"This server requires authentication, but you are not logged in!\n Connect to Wispcraft Settings to log in with Microsoft";
-								eag.writeBytes([0x08]);
-								eag.writeString(reason);
+								let eag = createEagKick(reason);
 								await this.eagler.write(eag);
 								return;
 							}
