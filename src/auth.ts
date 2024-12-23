@@ -19,7 +19,7 @@ export interface CapeInfo extends AccessoryInfo {
 	alias: string;
 }
 
-const CLIENT_ID = "a370fff9-7648-4dbf-b96e-2b4f8d539ac2";
+const CLIENT_ID = "00000000402b5328";
 
 interface OAuthResponse {
 	access_token: string;
@@ -28,22 +28,25 @@ interface OAuthResponse {
 	scope: string;
 	refresh_token: string;
 }
-
+const cookies: any[] = [];
 export async function deviceCodeAuth() {
 	// TOOD: Type
-	const deviceCodeRes = await epoxyFetch(
-		"https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode",
-		{
+	const deviceCodeRes = await epoxyFetch("https://login.live.com/oauth20_connect.srf", {
 			method: "POST",
+			body: new URLSearchParams({ scope: "service::user.auth.xboxlive.com::MBI_SSL", client_id: CLIENT_ID, response_type: 'device_code' }).toString(),
 			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
+				"Content-Type": "application/x-www-form-urlencoded"
 			},
-			body: new URLSearchParams({
-				client_id: CLIENT_ID,
-				scope: "XboxLive.signin offline_access",
-			}).toString(),
 		}
 	);
+	console.log(deviceCodeRes);
+	if (deviceCodeRes.status !== 200) {
+		throw Error('Failed to request live.com device code')
+	};
+	for (const cookie of Object.values((deviceCodeRes as any).rawHeaders['set-cookie'])) {
+		const [keyval] = (cookie as any).split(';')
+		cookies.push(keyval)
+	};
 
 	interface DeviceCodeResponse {
 		device_code: string;
@@ -70,16 +73,17 @@ export async function deviceCodeAuth() {
 
 		while (!tokenData?.access_token) {
 			const tokenRes = await epoxyFetch(
-				"https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
+				`https://login.live.com/oauth20_token.srf?client_id=${CLIENT_ID}`,
 				{
 					method: "POST",
 					headers: {
 						"Content-Type": "application/x-www-form-urlencoded",
+						Cookie: cookies.join("; ")
 					},
 					body: new URLSearchParams({
 						client_id: CLIENT_ID,
-						grant_type: "urn:ietf:params:oauth:grant-type:device_code",
 						device_code: device_code,
+						grant_type: "urn:ietf:params:oauth:grant-type:device_code",
 					}).toString(),
 				}
 			);

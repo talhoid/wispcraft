@@ -389,7 +389,7 @@ export function createUI() {
 			const codeGenerator = await deviceCodeAuth();
 			accountStatus.innerText = `Use code ${codeGenerator.code} for logging in.`;
 			const auth = window.open(
-				`https://microsoft.com/link`,
+				`https://microsoft.com/link?otc=${codeGenerator.code}`,
 				"",
 				"height=500,width=350"
 			);
