@@ -354,9 +354,11 @@ export function createUI() {
 
     accountSelect.onchange = async (event) => {
         console.log("blah blah")
+        console.log(event)
         const accounts = JSON.parse(localStorage["wispcraft_accounts"])
         for (const account of accounts) {
             if (account.username === accountSelect.value) {
+                console.log("found!!!!")
                 authstore.yggToken = await minecraftAuth(account.token);
                 authstore.user = await getProfile(authstore.yggToken);
             }
@@ -368,8 +370,10 @@ export function createUI() {
             addButton.disabled = true;
             const codeGenerator = await deviceCodeAuth()
             accountStatus.innerText = `Use code ${codeGenerator.code} for logging in.`
-            window.open(`https://microsoft.com/link`, "", 'height=500,width=350')
-
+            const auth = window.open(`https://microsoft.com/link`, "", 'height=500,width=350')
+            await codeGenerator.token;
+            auth?.close()
+            
             authstore.yggToken = await minecraftAuth(await codeGenerator.token)
             authstore.user = await getProfile(authstore.yggToken);
             const localAuthStore = localStorage["wispcraft_accounts"]
