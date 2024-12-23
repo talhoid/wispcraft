@@ -43,10 +43,9 @@ export async function deviceCodeAuth() {
 	if (deviceCodeRes.status !== 200) {
 		throw Error('Failed to request live.com device code')
 	};
-	for (const cookie of Object.values((deviceCodeRes as any).rawHeaders['set-cookie'])) {
-		const [keyval] = (cookie as any).split(';')
-		cookies.push(keyval)
-	};
+	const setCookie = (deviceCodeRes as any).rawHeaders["set-cookie"] as string
+	const [keyval] = setCookie.split(';')
+	cookies.push(keyval)
 
 	interface DeviceCodeResponse {
 		device_code: string;
