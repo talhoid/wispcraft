@@ -1,5 +1,6 @@
-import { deviceCodeAuth, minecraftAuth } from "./auth";
+import { deviceCodeAuth, getProfile, minecraftAuth } from "./auth";
 import { reconnect, set_wisp_server } from "./connection/epoxy";
+import {authstore} from "."; 
 
 export function createUI() {
 	const ui = `
@@ -257,10 +258,8 @@ export function createUI() {
                     <p>Microsoft Accounts</p>
                     <select name="accounts" id="account_select" class="select">
                         <option selected disabled>Choose an account</option>
-                        <option value="add-new"></option>
                     </select>
-                    <span id="account_status"></span>
-                </div>
+                </div><button class="button" id="addbutton">Add an account</button>
 
                 <div class="setting">
                     <p>Remember Me</p>
@@ -276,7 +275,23 @@ export function createUI() {
 
 	const settings = document.querySelector("#settings") as HTMLDivElement;
 	const auth = document.querySelector("#auth") as HTMLDivElement;
+    const addButton = document.querySelector("#addbutton") as HTMLButtonElement;
 
+    addButton.onclick = async () => {
+        const codeGenerator = await deviceCodeAuth()
+        console.log(`go to ${codeGenerator.url} and use ${codeGenerator.code}`)
+        addButton.innerText = "Use code " + codeGenerator.code + " for logging in"
+        window.open("https://microsoft.com/link", "", 'height=500,width=350')
+
+
+    
+        authstore.yggToken = await minecraftAuth(await codeGenerator.token)
+        const p = await getProfile(authstore.yggToken)
+        authstore.user = p;
+        document.querySelector('.settings-ui')!.classList.add('hidden');
+        document.querySelector('.backdrop-blur')!.classList.add('hidden');
+        
+    }
 	const settingsTab = document.querySelector(
 		"#settings_tab"
 	) as HTMLSpanElement;
