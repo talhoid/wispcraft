@@ -293,7 +293,7 @@ export function createUI() {
 		wispInput.value = localStorage.getItem("wispcraft_wispurl") as string;
 	}
 
-    wispInput.onfocus = () => {
+    wispInput.onclick = () => {
         wispInput.value = prompt("wisp server:")!;
     };
 
