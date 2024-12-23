@@ -155,7 +155,8 @@ export class Compressor {
 
 export function eagerlyPoll<T>(
 	stream: ReadableStream<T>,
-	buffer: number
+	buffer: number,
+	cb: () => void,
 ): ReadableStream<T> {
 	return new ReadableStream(
 		{
@@ -165,6 +166,7 @@ export function eagerlyPoll<T>(
 					const { done, value } = await reader.read();
 					if (done || !value) break;
 					controller.enqueue(value);
+					cb();
 				}
 				controller.close();
 			},

@@ -44,7 +44,7 @@ export class Connection {
 	eaglerOut: ReadableStreamDefaultReader<Buffer | string>;
 
 	// linked to eaglerIn, has packets the client sends
-	processIn: BytesReader;
+	processIn: ReadableStream<Buffer>;
 	// linked to eaglerOut, has packets the server sends
 	processOut: BytesWriter;
 
@@ -55,7 +55,7 @@ export class Connection {
 
 	constructor(uri: string) {
 		const [processIn, eaglerIn] = link<Buffer>();
-		this.processIn = processIn.getReader();
+		this.processIn = processIn;
 		this.eaglerIn = eaglerIn.getWriter();
 
 		const [eaglerOut, processOut] = link<Buffer>();
@@ -85,7 +85,7 @@ export class Connection {
 				const hostname = data[3];
 				connectUrl = new URL(`java://${hostname}:${port}`);
 			}
-		} catch {}
+		} catch { }
 		const conn = await connect_tcp(
 			connectUrl ? connectUrl.host : this.url.host,
 		);
@@ -108,6 +108,7 @@ export class Connection {
 
 		// epoxy -> process -> (hopefully) eagler task
 		(async () => {
+			let backlog = 0;
 			const reader = eagerlyPoll<Buffer>(
 				conn.read
 					.pipeThrough(bufferTransformer())
@@ -115,13 +116,17 @@ export class Connection {
 					.pipeThrough(lengthTransformer())
 					.pipeThrough(impl.decompressor.transform),
 				100,
+				() => backlog++
 			).getReader();
+
+			setInterval(() => console.log("epoxy backlog ", backlog), 1000);
 
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done || !value) return;
 
 				await impl.epoxyRead(value);
+				backlog--;
 			}
 
 			// TODO cleanup
@@ -129,12 +134,18 @@ export class Connection {
 
 		// eagler -> process -> (hopefully) epoxy task
 		(async () => {
+			let backlog = 0;
+			const reader = eagerlyPoll<Buffer>(this.processIn, 100, () => backlog++).getReader();
+
+			setInterval(() => console.log("eagler backlog ", backlog), 1000);
 			while (true) {
-				const { done, value } = await this.processIn.read();
+				const { done, value } = await reader.read();
 				if (done || !value) return;
 
 				await impl.eaglerRead(value);
+				backlog--;
 			}
+
 			// TODO cleanup
 		})();
 		this.impl = impl;
