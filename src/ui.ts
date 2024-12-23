@@ -5,10 +5,11 @@ import {authstore} from ".";
 let keydownListeners: Array<EventListenerOrEventListenerObject> = [];
 const nativeAddEventListener = window.addEventListener;
 window.addEventListener = (type: string, listener: EventListenerOrEventListenerObject) => {
-  if(type != 'keydown') {
-    return nativeAddEventListener(type, listener);
+  if(type == 'keydown') {
+    keydownListeners.push(listener);
   }
-  keydownListeners.push(listener);
+  nativeAddEventListener(type, listener);
+
 };
 
 export function createUI() {
