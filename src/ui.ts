@@ -10,15 +10,6 @@ window.addEventListener = (type: string, listener: EventListenerOrEventListenerO
   }
   keydownListeners.push(listener);
 };
-nativeAddEventListener('keydown', (event) => {
-  if(document.activeElement?.tagName == 'INPUT') {
-    return;
-  }
-
-  keydownListeners.map((listener) => {
-    (listener as EventListener)(event);
-  });
-})
 
 export function createUI() {
 	const ui = `
@@ -316,7 +307,14 @@ export function createUI() {
 	const authTab = document.querySelector("#auth_tab") as HTMLSpanElement;
 
 	const wispInput = document.querySelector("#wisp_url") as HTMLInputElement;
-	const saveButton = document.querySelector(
+
+  wispInput.addEventListener('focusin', () => 
+    keydownListeners.map((listener) => window.removeEventListener('keydown', listener)))
+
+  wispInput.addEventListener('focusout', () => 
+    keydownListeners.map((listener) => nativeAddEventListener('keydown', listener)))
+
+  const saveButton = document.querySelector(
 		"#save_button"
 	) as HTMLButtonElement;
     const accountSelect = document.querySelector("#account_select") as HTMLSelectElement;
