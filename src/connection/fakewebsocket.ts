@@ -1,4 +1,5 @@
 import { Connection } from ".";
+import { authstore } from "..";
 import { Buffer } from "../buffer";
 import { showUI } from "../ui";
 import { wisp } from "./epoxy";
@@ -18,7 +19,7 @@ class WispWS extends EventTarget {
 
 		this.url = uri;
 		this.worker = new Worker("worker.js");
-
+		this.worker.postMessage({userProfile: authstore})
 		this.readyState = WebSocket.CONNECTING;
 		this.worker.onmessage = async ({ data }) => {
 			this.eaglerIn = data.eaglerIn.getWriter();

@@ -1,6 +1,9 @@
 import { Connection } from "./connection";
 
 let conn: Connection;
+
+export const authInfo = {yggToken: "", user: {id: ""}};
+
 self.onmessage = ({ data }) => {
 	if (data.ping) {
 		conn.ping();
@@ -8,6 +11,13 @@ self.onmessage = ({ data }) => {
 	}
 	if (data.close) {
 		conn.eaglerIn.close();
+		return;
+	}
+	if (data.userProfile) {
+		
+		authInfo.yggToken = data.userProfile.yggToken;
+		authInfo.user = data.userProfile.user;
+		console.log("Got userinfo: ", authInfo)
 	}
 
 	conn = new Connection(data.uri);

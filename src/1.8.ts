@@ -13,6 +13,7 @@ import {
 import { handleSkinCape } from "./skins";
 import "./auth";
 import { joinServer } from "./auth";
+import {authInfo} from "./worker"
 // import { authstore } from "./index";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
@@ -339,13 +340,13 @@ export class EaglerProxy {
 						{
 							this.isPremium = true;
 
-							// if (authstore.user == null) {
-							// 	const reason =
-							// 		"This server requires authentication, but you are not logged in!\n Connect to Wispcraft Settings to log in with Microsoft";
-							// 	let eag = createEagKick(reason);
-							// 	await this.eagler.write(eag);
-							// 	return;
-							// }
+							if (authInfo.user == null) {
+								const reason =
+									"This server requires authentication, but you are not logged in!\n Connect to Wispcraft Settings to log in with Microsoft";
+								let eag = createEagKick(reason);
+								await this.eagler.write(eag);
+								return;
+							}
 
 							let serverid = packet.readString();
 							console.log("Server ID: " + serverid);
@@ -368,8 +369,8 @@ export class EaglerProxy {
 								modulus,
 								exponent,
 							);
-
-							// await joinServer(authstore.yggToken, digest, authstore.user.id);
+							console.log("joining with: ", authInfo);
+							await joinServer(authInfo.yggToken, digest, authInfo.user.id);
 
 							let response = new Packet(Serverbound.EncryptionResponse);
 							response.writeVariableData(new Buffer(encrypedSecret));
