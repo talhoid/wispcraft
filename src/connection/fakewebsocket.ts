@@ -1,6 +1,7 @@
 import { Connection } from ".";
 import { Buffer } from "../buffer";
 import { showUI } from "../ui";
+import { wisp } from "./epoxy";
 // @ts-ignore typescript sucks
 import wispcraft from "./wispcraft.png";
 
@@ -10,6 +11,7 @@ class WispWS extends EventTarget {
 
 	eaglerIn?: WritableStreamDefaultWriter<Buffer>;
 	eaglerOut?: ReadableStreamDefaultReader<Buffer | string>;
+	readyState: number;
 
 	constructor(uri: string) {
 		super();
@@ -17,10 +19,12 @@ class WispWS extends EventTarget {
 		this.url = uri;
 		this.worker = new Worker("./dist/worker.js");
 
+		this.readyState = WebSocket.CONNECTING;
 		this.worker.onmessage = async ({ data }) => {
 			this.eaglerIn = data.eaglerIn.getWriter();
 			this.eaglerOut = data.eaglerOut.getReader();
 
+			this.readyState = WebSocket.OPEN;
 			this.dispatchEvent(new Event("open"));
 
 			try {
@@ -34,7 +38,9 @@ class WispWS extends EventTarget {
 						}),
 					);
 				}
+				this.readyState = WebSocket.CLOSING;
 				this.dispatchEvent(new Event("close"));
+				this.readyState = WebSocket.CLOSED;
 			} catch (err) {
 				console.error(err);
 				this.dispatchEvent(new Event("error"));
@@ -63,15 +69,25 @@ class WispWS extends EventTarget {
 	}
 
 	close() {
+		if (
+			this.readyState == WebSocket.CLOSING ||
+			this.readyState == WebSocket.CLOSED
+		) {
+			return;
+		}
+		this.readyState = WebSocket.CLOSING;
 		try {
 			this.worker.postMessage({ close: true });
 			// terminate too?
 		} catch (err) {}
+		this.readyState = WebSocket.CLOSED;
 	}
 }
 class SettingsWS extends EventTarget {
+	readyState: number;
 	constructor() {
 		super();
+		this.readyState = WebSocket.CLOSED;
 		setTimeout(() => {
 			this.dispatchEvent(new Event("open"));
 		});
@@ -113,11 +129,127 @@ class SettingsWS extends EventTarget {
 				);
 			};
 		} else {
-			showUI(null);
+			showUI();
+			let str = "Settings UI launched.";
+			let enc = new TextEncoder().encode(str);
+			let eag = Uint8Array.from([0xff, 0x08, enc.length, ...enc]);
+			this.dispatchEvent(new MessageEvent("message", { data: eag }));
 			this.dispatchEvent(new CloseEvent("close"));
 		}
 	}
 	close() {}
+}
+
+class AutoWS extends EventTarget {
+	inner: WebSocket | WispWS | null;
+	url: string;
+
+	constructor(uri: string, protocols?: string | string[]) {
+		super();
+		const url = new URL(uri);
+		this.inner = null;
+		this.url = url.protocol + "//java://" + url.hostname;
+		const el = (event: Event) => {
+			switch (event.type.toLowerCase()) {
+				case "close":
+					this.dispatchEvent(new CloseEvent("close", event));
+					break;
+				case "message":
+					this.dispatchEvent(new MessageEvent("message", event));
+					break;
+				default:
+					this.dispatchEvent(new Event(event.type, event));
+			}
+		};
+		let flag = false;
+		const el3 = (event: Event) => {
+			if (this.inner != null) {
+				this.inner.removeEventListener("close", el2);
+				this.inner.removeEventListener("error", el2);
+				this.inner.addEventListener("close", el);
+				this.inner.addEventListener("error", el);
+				flag = true;
+			}
+			el(event);
+		};
+		let ti = -1;
+		let called = false;
+		const el2 = () => {
+			if (called) {
+				return;
+			}
+			called = true;
+			if (ti != -1) {
+				clearInterval(ti);
+			}
+			if (this.inner != null) {
+				if (flag) {
+					this.inner.removeEventListener("close", el);
+					this.inner.removeEventListener("error", el);
+				} else {
+					this.inner.removeEventListener("close", el2);
+					this.inner.removeEventListener("error", el2);
+				}
+				this.inner.removeEventListener("open", el3);
+				this.inner.removeEventListener("message", el);
+			}
+			this.inner = new WispWS(this.url);
+			this.inner.addEventListener("close", el);
+			this.inner.addEventListener("error", el);
+			this.inner.addEventListener("open", el);
+			this.inner.addEventListener("message", el);
+			this.inner.start();
+		};
+		ti = setTimeout(el2, 3500);
+		try {
+			const ws = new NativeWebSocket(uri, protocols);
+			if (this.inner != null) {
+				ws.close();
+				return;
+			}
+			this.inner = ws;
+			this.inner.addEventListener("close", el2);
+			this.inner.addEventListener("error", el2);
+			this.inner.addEventListener("open", el3);
+			this.inner.addEventListener("message", el);
+		} catch (e) {
+			el2();
+		}
+	}
+
+	send(chunk: Uint8Array | ArrayBuffer | string) {
+		if (this.inner != null) {
+			return this.inner.send(chunk);
+		}
+	}
+
+	close() {
+		if (this.inner != null) {
+			try {
+				return this.inner.close();
+			} catch (e) {}
+		}
+	}
+
+	get binaryType() {
+		if (this.inner != null && this.inner instanceof WebSocket) {
+			return this.inner.binaryType;
+		}
+		return "arraybuffer";
+	}
+
+	get readyState() {
+		if (this.inner != null) {
+			return this.inner.readyState;
+		}
+		return WebSocket.CONNECTING;
+	}
+
+	set binaryType(binaryType: BinaryType) {
+		if (this.inner != null && this.inner instanceof WebSocket) {
+			this.inner.binaryType = binaryType;
+		}
+	}
 }
 
 const NativeWebSocket = WebSocket;
@@ -129,10 +261,12 @@ export function makeFakeWebSocket(): typeof WebSocket {
 				const ws = new WispWS(uri);
 				ws.start();
 				return ws;
-			} else if (url.host == "settings") {
+			} else if (url.hostname == "settings") {
 				return new SettingsWS();
-			} else {
+			} else if (uri == wisp) {
 				return new NativeWebSocket(uri, protos);
+			} else {
+				return new AutoWS(uri, protos);
 			}
 		},
 	});

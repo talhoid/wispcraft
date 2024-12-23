@@ -441,11 +441,11 @@ export function createUI() {
 	};
 }
 
-export function showUI(args) {
+export function showUI() {
 	const settingsUi = document.querySelector(".settings-ui");
 	if (!settingsUi) {
 		createUI();
-		return showUI(args);
+		return showUI();
 	}
 	settingsUi.classList.remove("hidden");
 	document.querySelector(".backdrop-blur")!.classList.remove("hidden");
