@@ -17,7 +17,7 @@ class WispWS extends EventTarget {
 		super();
 
 		this.url = uri;
-		this.worker = new Worker("./dist/worker.js");
+		this.worker = new Worker("worker.js");
 
 		this.readyState = WebSocket.CONNECTING;
 		this.worker.onmessage = async ({ data }) => {
