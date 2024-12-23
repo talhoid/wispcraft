@@ -2,6 +2,15 @@ import { deviceCodeAuth, getProfile, minecraftAuth } from "./auth";
 import { reconnect, set_wisp_server } from "./connection/epoxy";
 import {authstore} from "."; 
 
+let keydownListeners: Array<EventListenerOrEventListenerObject> = [];
+const nativeAddEventListener = window.addEventListener;
+window.addEventListener = (type: string, listener: EventListenerOrEventListenerObject) => {
+  if(type != 'keydown') {
+    return nativeAddEventListener(type, listener);
+  }
+  keydownListeners.push(listener);
+};
+
 export function createUI() {
 	const ui = `
       	<style>
@@ -284,7 +293,14 @@ export function createUI() {
 	const authTab = document.querySelector("#auth_tab") as HTMLSpanElement;
 
 	const wispInput = document.querySelector("#wisp_url") as HTMLInputElement;
-	const saveButton = document.querySelector(
+
+  wispInput.addEventListener('focusin', () => 
+    keydownListeners.map((listener) => window.removeEventListener('keydown', listener)))
+
+  wispInput.addEventListener('focusout', () => 
+    keydownListeners.map((listener) => nativeAddEventListener('keydown', listener)))
+
+  const saveButton = document.querySelector(
 		"#save_button"
 	) as HTMLButtonElement;
     const accountSelect = document.querySelector("#account_select") as HTMLSelectElement;
@@ -309,10 +325,6 @@ export function createUI() {
         const option = document.querySelector(`option[value="${localStorage["wispcraft_last_used_account"]}"]`) as HTMLOptionElement;
         option.selected = true;
     }
-
-    wispInput.onclick = () => {
-        wispInput.value = prompt("wisp server:")!;
-    };
 
 	saveButton.onclick = async () => {
 		const value = wispInput.value;
