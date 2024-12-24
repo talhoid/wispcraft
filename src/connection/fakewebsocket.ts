@@ -3,7 +3,7 @@ import { Buffer } from "../buffer";
 import { showUI } from "../ui";
 // @ts-ignore typescript sucks
 import wispcraft from "./wispcraft.png";
-import DataWorker from "./loader";
+// import DataWorker from "./loader";
 
 class WispWS extends EventTarget {
 	url: string;
@@ -17,7 +17,8 @@ class WispWS extends EventTarget {
 		super();
 
 		this.url = uri;
-		this.worker = new Worker("data:text/javascript;base64," + DataWorker);
+		// this.worker = new Worker("data:text/javascript;base64," + DataWorker);
+		this.worker = new Worker("worker.js");
 
 		this.readyState = WebSocket.CONNECTING;
 		this.worker.onmessage = async ({ data }) => {
@@ -82,7 +83,6 @@ class WispWS extends EventTarget {
 		this.readyState = WebSocket.CLOSING;
 		try {
 			this.worker.postMessage({ close: true });
-			// terminate too?
 		} catch (err) {}
 		this.readyState = WebSocket.CLOSED;
 	}
@@ -119,19 +119,15 @@ class SettingsWS extends EventTarget {
 					}),
 				}),
 			);
-			let image = new Image();
-			image.src = wispcraft;
-			image.onload = () => {
-				let canvas = document.createElement("canvas");
-				canvas.width = image.width;
-				canvas.height = image.height;
+			fetch(wispcraft).then((response) => response.blob()).then((blob) => createImageBitmap(blob)).then((image) => {
+				let canvas = new OffscreenCanvas(image.width, image.height);
 				let ctx = canvas.getContext("2d")!;
 				ctx.drawImage(image, 0, 0);
 				let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 				this.dispatchEvent(
 					new MessageEvent("message", { data: new Uint8Array(pixels) }),
 				);
-			};
+			});
 		} else {
 			showUI();
 			let str = "Settings UI launched.";

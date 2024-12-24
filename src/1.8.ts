@@ -189,7 +189,7 @@ export class EaglerProxy {
 							);
 						} else {
 							fakelogin.writeString(this.offlineUsername);
-							fakelogin.writeBytes(offlineUUID(username));
+							fakelogin.writeBytes(offlineUUID(this.offlineUsername));
 						}
 						await this.eagler.write(fakelogin);
 						return;
@@ -285,28 +285,26 @@ export class EaglerProxy {
 							else if (body.description.extra) {
 								response.data.motd = [chatToLegacyString(body.description)];
 							} else response.data.motd = [body.description.text];
-
+						
 						if (body.favicon) {
 							response.data.icon = true;
-							let image = new Image();
-							image.onload = () => {
-								let canvas = document.createElement("canvas");
-								canvas.width = image.width;
-								canvas.height = image.height;
-								let ctx = canvas.getContext("2d")!;
-								ctx.drawImage(image, 0, 0);
-								let pixels = ctx.getImageData(
-									0,
-									0,
-									canvas.width,
-									canvas.height,
-								).data;
-								this.eagler.write(new Buffer(new Uint8Array(pixels)));
-							};
-							image.src = body.favicon;
 						}
 
 						await this.eagler.write(JSON.stringify(response));
+
+						if (body.favicon) {
+							let image = await createImageBitmap(await (await fetch(body.favicon)).blob());
+							let canvas = new OffscreenCanvas(image.width, image.height);
+							let ctx = canvas.getContext("2d")!;
+							ctx.drawImage(image, 0, 0);
+							let pixels = ctx.getImageData(
+								0,
+								0,
+								canvas.width,
+								canvas.height,
+							).data;
+							this.eagler.write(new Buffer(new Uint8Array(pixels)));
+						}
 						break;
 					case Clientbound.PongResponse:
 						let time = packet.readLong();

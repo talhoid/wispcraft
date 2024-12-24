@@ -8,11 +8,11 @@ self.onmessage = ({ data }) => {
 		return;
 	}
 	if (data.close) {
-		conn.eaglerIn.close();
+		conn.eaglerOut.cancel();
+		self.close();
 		return;
 	}
 
-	console.log(data);
 	conn = new Connection(data.uri, data.wisp, data.authstore);
 	conn.forward(() => {
 		self.postMessage(

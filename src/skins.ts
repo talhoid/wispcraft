@@ -91,10 +91,8 @@ async function funnyFetch(url: string): Promise<Tex> {
 }
 
 function makeImageData(width: number, height: number): ImageData {
-	const canvas = document.createElement("canvas");
-	canvas.width = width;
-	canvas.height = height;
-	return (canvas.getContext("2d") as CanvasRenderingContext2D).getImageData(
+	const canvas = new OffscreenCanvas(width, height);
+	return canvas.getContext("2d")!.getImageData(
 		0,
 		0,
 		width,
@@ -103,18 +101,11 @@ function makeImageData(width: number, height: number): ImageData {
 }
 
 async function blobToImageData(blob: Blob): Promise<ImageData> {
-	return await new Promise((r) => {
-		const canvas = document.createElement("canvas");
-		const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-		const image = new Image();
-		image.onload = function () {
-			canvas.width = image.width;
-			canvas.height = image.height;
-			ctx.drawImage(image, 0, 0);
-			r(ctx.getImageData(0, 0, canvas.width, canvas.height));
-		};
-		image.src = URL.createObjectURL(blob);
-	});
+	const image = await createImageBitmap(blob);
+	const canvas = new OffscreenCanvas(image.width, image.height);
+	const ctx = canvas.getContext("2d")!;
+	ctx.drawImage(image, 0, 0);
+	return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
 function copyRawPixels(
