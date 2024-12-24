@@ -333,10 +333,7 @@ export function createUI() {
     }
 
     if (localStorage["wispcraft_last_used_account"]) {
-        const option = document.querySelector(
-            `option[value="${localStorage["wispcraft_last_used_account"]}"]`,
-        ) as HTMLOptionElement;
-        option.selected = true;
+        accountSelect.value = localStorage["wispcraft_last_used_account"];
     }
 
     saveButton.onclick = async () => {
@@ -374,6 +371,8 @@ export function createUI() {
             authstore.user = null;
             authstore.yggToken = "";
             authstore.yggRefresh = "";
+            localStorage["wispcraft_last_used_account"] = "no-account"
+            return;
         }
         const accounts = JSON.parse(
             localStorage["wispcraft_accounts"],
@@ -431,6 +430,7 @@ export function createUI() {
             localStorage["wispcraft_last_used_account"] = authstore.user.name;
         } catch (e) {
             accountStatus.innerText = `An error occured: ${new String(e).toString()}`;
+            addButton.disabled = false;
         }
     };
 
