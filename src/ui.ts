@@ -270,6 +270,7 @@ export function createUI() {
                     <p>Microsoft Accounts</p>
                     <select name="accounts" id="account_select" class="select">
                         <option selected disabled>Choose an account</option>
+                        <option value="no-account>NONE</option>
                     </select>
                     <p id="account_status"></p>
                     <button class="button" id="addbutton">Add an account</button>
@@ -369,6 +370,11 @@ export function createUI() {
     };
 
     accountSelect.onchange = async () => {
+        if (accountSelect.value === "no-account") {
+            authstore.user = null;
+            authstore.yggToken = "";
+            authstore.yggRefresh = "";
+        }
         const accounts = JSON.parse(
             localStorage["wispcraft_accounts"],
         ) as TokenStore[];
@@ -407,7 +413,12 @@ export function createUI() {
                 ]);
             } else {
                 const accounts = JSON.parse(localAuthStore);
-                accounts.push({ username: authstore.user.name, token });
+                const existingAccount = accounts.findIndex((account) => account.username === authstore.user?.name);
+                if (existingAccount) {
+                    accounts.splice(existingAccount, 1, { username: authstore.user.name, token });
+                } else {
+                    accounts.push({ username: authstore.user.name, token });
+                }
                 localStorage["wispcraft_accounts"] = JSON.stringify(accounts);
             }
             const selector = document.createElement("option");
