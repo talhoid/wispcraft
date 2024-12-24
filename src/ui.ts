@@ -270,7 +270,7 @@ export function createUI() {
                     <p>Microsoft Accounts</p>
                     <select name="accounts" id="account_select" class="select">
                         <option selected disabled>Choose an account</option>
-                        <option value="no-account>NONE</option>
+                        <option value="no-account">NONE</option>
                     </select>
                     <p id="account_status"></p>
                     <button class="button" id="addbutton">Add an account</button>
