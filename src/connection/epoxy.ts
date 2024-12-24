@@ -13,15 +13,13 @@ let initpromise = new Promise((r) => (resolver = r));
 
 export async function initWisp(wisp: string) {
 	await initEpoxy();
-	resolver();
 
-	if (!epoxy || wisp != connectedwisp) {
-		const options = new EpoxyClientOptions();
-		options.wisp_v2 = false;
-		options.udp_extension_required = false;
-		connectedwisp = wisp;
-		return (epoxy = new EpoxyClient(wisp, options));
-	}
+	const options = new EpoxyClientOptions();
+	options.wisp_v2 = false;
+	options.udp_extension_required = false;
+	connectedwisp = wisp;
+	epoxy = new EpoxyClient(wisp, options);
+	resolver();
 }
 
 export async function epoxyFetch(url: string, opts?: any): Promise<Response> {
