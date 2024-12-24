@@ -10,9 +10,19 @@ let epoxy: EpoxyClient | null = null;
 
 let resolver;
 let initpromise = new Promise((r) => (resolver = r));
+let initted = false;
 
 export async function initWisp(wisp: string) {
-	await initEpoxy();
+	if (!initted) {
+		initted = true;
+		await initEpoxy();
+
+		self.Request = new Proxy(self.Request, {
+			construct(target, [input, init]) {
+				return new target(input || "about:blank", init);
+			}
+		});
+	}
 
 	const options = new EpoxyClientOptions();
 	options.wisp_v2 = false;
