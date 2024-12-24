@@ -196,9 +196,21 @@
 							fileElem.removeAttribute("disabled");
 							return;
 						}
+
+						let inject = `
+							<script>
+								let bundle = "${getWispcraftBundle()}";
+								let blob = new Blob([Uint8Array.from(atob(bundle).split("").map((c) => c.charCodeAt(0)))], {type: "application/javascript"});
+								let url = URL.createObjectURL(blob);
+								let script = document.createElement("script");
+								script.src = url;
+								document.head.appendChild(script);
+								script.onload = () => wispcraft.initMain(url);
+							<${"/"}script>
+						`
 						content =
 							content.slice(0, index) +
-							`<script>${getWispcraftBundle()}<${"/"}script>` +
+							inject + 
 							content.slice(index);
 						const blob = new Blob([content], {
 							type: "text/html; charset=utf-8",
@@ -217,7 +229,7 @@
 		<script id="wispcraft-bundled">
 			// wispcraft will be bundled and stored here
 			function getWispcraftBundle() {
-				atob("WISPCRAFTSRCBUNDLE");
+				WISPCRAFTSRCBUNDLE
 			}
 		</script>
 	</body>
