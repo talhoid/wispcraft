@@ -1,9 +1,8 @@
-import { authstore, type AuthStore } from "..";
+import { authstore, wispUrl, type AuthStore } from "..";
 import { Buffer } from "../buffer";
 import { showUI } from "../ui";
 // @ts-ignore typescript sucks
 import wispcraft from "./wispcraft.png";
-import DataWorker from "./loader";
 
 class WispWS extends EventTarget {
 	url: string;
@@ -13,11 +12,11 @@ class WispWS extends EventTarget {
 	eaglerOut?: ReadableStreamDefaultReader<Buffer | string>;
 	readyState: number;
 
-	constructor(uri: string) {
+	constructor(uri: string, workeruri: string) {
 		super();
 
 		this.url = uri;
-		this.worker = new Worker("data:text/javascript;base64," + DataWorker);
+		this.worker = new Worker(workeruri);
 
 		this.readyState = WebSocket.CONNECTING;
 		this.worker.onmessage = async ({ data }) => {
@@ -51,7 +50,7 @@ class WispWS extends EventTarget {
 	start() {
 		this.worker.postMessage({
 			uri: this.url,
-			wisp: new URL(window.location.href).searchParams.get("wisp") || localStorage["wispcraft_wispurl"] || "wss://wisp.run/",
+			wisp: wispUrl,
 			authstore,
 		});
 	}
@@ -82,7 +81,7 @@ class WispWS extends EventTarget {
 		this.readyState = WebSocket.CLOSING;
 		try {
 			this.worker.postMessage({ close: true });
-		} catch (err) {}
+		} catch (err) { }
 		this.readyState = WebSocket.CLOSED;
 	}
 }
@@ -118,15 +117,18 @@ class SettingsWS extends EventTarget {
 					}),
 				}),
 			);
-			fetch(wispcraft).then((response) => response.blob()).then((blob) => createImageBitmap(blob)).then((image) => {
-				let canvas = new OffscreenCanvas(image.width, image.height);
-				let ctx = canvas.getContext("2d")!;
-				ctx.drawImage(image, 0, 0);
-				let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-				this.dispatchEvent(
-					new MessageEvent("message", { data: new Uint8Array(pixels) }),
-				);
-			});
+			fetch(wispcraft)
+				.then((response) => response.blob())
+				.then((blob) => createImageBitmap(blob))
+				.then((image) => {
+					let canvas = new OffscreenCanvas(image.width, image.height);
+					let ctx = canvas.getContext("2d")!;
+					ctx.drawImage(image, 0, 0);
+					let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+					this.dispatchEvent(
+						new MessageEvent("message", { data: new Uint8Array(pixels) }),
+					);
+				});
 		} else {
 			showUI();
 			let str = "Settings UI launched.";
@@ -136,14 +138,14 @@ class SettingsWS extends EventTarget {
 			this.dispatchEvent(new CloseEvent("close"));
 		}
 	}
-	close() {}
+	close() { }
 }
 
 class AutoWS extends EventTarget {
 	inner: WebSocket | WispWS | null;
 	url: string;
 
-	constructor(uri: string, protocols?: string | string[]) {
+	constructor(uri: string, workeruri: string, protocols?: string | string[]) {
 		super();
 		const url = new URL(uri);
 		this.inner = null;
@@ -193,7 +195,7 @@ class AutoWS extends EventTarget {
 				this.inner.removeEventListener("open", el3);
 				this.inner.removeEventListener("message", el);
 			}
-			this.inner = new WispWS(this.url);
+			this.inner = new WispWS(this.url, workeruri);
 			this.inner.addEventListener("close", el);
 			this.inner.addEventListener("error", el);
 			this.inner.addEventListener("open", el);
@@ -227,7 +229,7 @@ class AutoWS extends EventTarget {
 		if (this.inner != null) {
 			try {
 				return this.inner.close();
-			} catch (e) {}
+			} catch (e) { }
 		}
 	}
 
@@ -253,19 +255,22 @@ class AutoWS extends EventTarget {
 }
 
 const NativeWebSocket = WebSocket;
-export function makeFakeWebSocket(): typeof WebSocket {
+export function makeFakeWebSocket(workeruri: string): typeof WebSocket {
 	return new Proxy(WebSocket, {
 		construct(_target, [uri, protos]) {
 			let url = new URL(uri);
 			let isCustomProtocol = url.port == "" && url.pathname.startsWith("//");
-			if (isCustomProtocol && url.hostname == "java") {
-				const ws = new WispWS(uri);
+
+			if (url.href == wispUrl) {
+				return new NativeWebSocket(uri, protos);
+			} else if (isCustomProtocol && url.hostname == "java") {
+				const ws = new WispWS(uri, workeruri);
 				ws.start();
 				return ws;
 			} else if (isCustomProtocol && url.hostname == "settings") {
 				return new SettingsWS();
 			} else {
-				return new AutoWS(uri, protos);
+				return new AutoWS(uri, workeruri, protos);
 			}
 		},
 	});

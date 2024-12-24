@@ -62,17 +62,6 @@ const configs = [
 		},
 		plugins: commonPlugins(),
 	},
-	{
-		input: "./src/worker.ts",
-		output: {
-			file: "dist/worker.js",
-			format: "umd",
-			name: "wispworker",
-			sourcemap: true,
-			exports: "named",
-		},
-		plugins: commonPlugins(),
-	},
 ];
 
 export default configs;

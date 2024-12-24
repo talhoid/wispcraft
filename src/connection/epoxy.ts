@@ -20,7 +20,7 @@ export async function initWisp(wisp: string) {
 		self.Request = new Proxy(self.Request, {
 			construct(target, [input, init]) {
 				return new target(input || "about:blank", init);
-			}
+			},
 		});
 	}
 
