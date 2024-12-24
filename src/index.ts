@@ -52,7 +52,7 @@ window.fetch = async function (url: RequestInfo | URL, init?: RequestInit) {
 type EaglerXOptions = any;
 let eagoptions: EaglerXOptions;
 // append settings to the server list
-const settings = { addr: "settings", name: "Wispcraft Settings" };
+const settings = { addr: "settings://", name: "Wispcraft Settings" };
 Object.defineProperty(window, "eaglercraftXOpts", {
 	get() {
 		if (eagoptions) {

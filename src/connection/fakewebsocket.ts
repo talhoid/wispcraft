@@ -261,11 +261,12 @@ export function makeFakeWebSocket(): typeof WebSocket {
 	return new Proxy(WebSocket, {
 		construct(_target, [uri, protos]) {
 			let url = new URL(uri);
-			if (url.host == "java") {
+			let isCustomProtocol = url.port == "" && url.pathname.startsWith("//");
+			if (isCustomProtocol && url.hostname == "java") {
 				const ws = new WispWS(uri);
 				ws.start();
 				return ws;
-			} else if (url.hostname == "settings") {
+			} else if (isCustomProtocol && url.hostname == "settings") {
 				return new SettingsWS();
 			} else {
 				return new AutoWS(uri, protos);
