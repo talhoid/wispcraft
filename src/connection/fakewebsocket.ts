@@ -51,7 +51,7 @@ class WispWS extends EventTarget {
 	start() {
 		this.worker.postMessage({
 			uri: this.url,
-			wisp: localStorage["wispcraft_wispurl"],
+			wisp: new URL(window.location.href).searchParams.get("wisp") || localStorage["wispcraft_wispurl"] || "wss://wisp.run/",
 			authstore,
 		});
 	}

@@ -1,5 +1,5 @@
 import { getProfile, minecraftAuth, UserInfo } from "./auth";
-import { epoxyFetch } from "./connection/epoxy";
+import { epoxyFetch, initWisp } from "./connection/epoxy";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
 
 const nativeFetch = fetch;
@@ -69,3 +69,4 @@ Object.defineProperty(window, "eaglercraftXOpts", {
 		}
 	},
 });
+initWisp(new URL(window.location.href).searchParams.get("wisp") || localStorage["wispcraft_wispurl"] || "wss://wisp.run/")
