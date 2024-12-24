@@ -167,6 +167,7 @@ class AutoWS extends EventTarget {
 		};
 		let flag = false;
 		const el3 = (event: Event) => {
+			called = true;
 			if (this.inner != null) {
 				this.inner.removeEventListener("close", el2);
 				this.inner.removeEventListener("error", el2);
@@ -184,7 +185,7 @@ class AutoWS extends EventTarget {
 			}
 			called = true;
 			if (ti != -1) {
-				clearInterval(ti);
+				clearTimeout(ti);
 			}
 			if (this.inner != null) {
 				if (flag) {
