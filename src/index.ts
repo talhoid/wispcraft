@@ -8,7 +8,6 @@ export let wispUrl: string;
 export type AuthStore = {
 	user: UserInfo | null;
 	yggToken: string;
-	yggRefresh: string;
 };
 
 export type TokenStore = {
@@ -19,7 +18,6 @@ export type TokenStore = {
 export let authstore: AuthStore = {
 	user: null,
 	yggToken: "",
-	yggRefresh: "",
 };
 
 export function initMain(workeruri: string) {

@@ -19,7 +19,7 @@ export interface CapeInfo extends AccessoryInfo {
 	alias: string;
 }
 
-const CLIENT_ID = "a370fff9-7648-4dbf-b96e-2b4f8d539ac2";
+const CLIENT_ID = "c36a9fb6-4f2a-41ff-90bd-ae7cc92031eb";
 
 interface OAuthResponse {
 	access_token: string;

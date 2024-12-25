@@ -33,6 +33,7 @@
 	},
 	"dependencies": {
 		"@mercuryworkshop/epoxy-tls": "2.1.17-1",
+		"@paulmillr/qr": "^0.3.0",
 		"aes-ts": "^0.0.0-alpha.0"
 	}
 }

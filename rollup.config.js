@@ -28,7 +28,7 @@ const commonPlugins = () => [
 	typescript(),
 	dataUri(),
 	url({ limit: 9999999999999999 }),
-	// terser(),
+	terser(),
 	nodeResolve({
 		browser: true,
 	}),
