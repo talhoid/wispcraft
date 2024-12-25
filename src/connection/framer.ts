@@ -77,8 +77,10 @@ export function lengthTransformer(): TransformStream<Buffer> {
 	let currentSize = -1;
 	return new TransformStream({
 		transform(chunk, controller) {
+			const start = performance.now();
 			currentPacket.extend(chunk);
 			while (true) {
+
 				if (currentSize === -1) {
 					let size: number;
 					try {
@@ -97,7 +99,9 @@ export function lengthTransformer(): TransformStream<Buffer> {
 				const pkt = currentPacket.take(currentSize);
 				controller.enqueue(pkt);
 				currentSize = -1;
+				
 			}
+			console.log("Took " + (performance.now() - start) + " to lengthTransform packet");
 		},
 	});
 }
@@ -110,6 +114,7 @@ export class Decompressor {
 		const self = this;
 		this.transform = new TransformStream({
 			async transform(chunk, controller) {
+				const start = performance.now();
 				if (self.compressionThresh === -1) {
 					controller.enqueue(chunk);
 					return;
@@ -126,6 +131,7 @@ export class Decompressor {
 						"Decompressor: server sent compressed packet below threshold"
 					);
 				}
+				console.log("Took " + (performance.now() - start) + " to decompress packet");
 			},
 		});
 	}

@@ -151,10 +151,11 @@ export class Connection {
 
 			// setInterval(() => console.log("eagler backlog ", backlog), 1000);
 			while (true) {
+				const start = performance.now();
 				const { done, value } = await reader.read();
 				if (done || !value) return;
-
 				await impl.eaglerRead(value);
+				console.log("Took " + (performance.now() - start) + " to eaglerRead packet");
 				backlog--;
 			}
 
