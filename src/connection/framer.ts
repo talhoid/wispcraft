@@ -61,6 +61,7 @@ export function bufferTransformer(): TransformStream<Uint8Array, Buffer> {
 	return new TransformStream({
 		transform(chunk, controller) {
 			controller.enqueue(new Buffer(chunk));
+			console.log("Got a packet of size " + chunk.length +" (bufferTransformer)");
 		},
 	});
 }
