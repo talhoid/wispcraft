@@ -11,6 +11,9 @@ importers:
       '@mercuryworkshop/epoxy-tls':
         specifier: 2.1.17-1
         version: 2.1.17-1
+      '@paulmillr/qr':
+        specifier: ^0.3.0
+        version: 0.3.0
       aes-ts:
         specifier: ^0.0.0-alpha.0
         version: 0.0.0-alpha.0
@@ -71,6 +74,9 @@ packages:
 
   '@mercuryworkshop/epoxy-tls@2.1.17-1':
     resolution: {integrity: sha512-8aKjqfcbQUBNo2ug0i4cdOlCr3BJ9xwseDKs5KApOZ+4K8T7AXipWjQzVJzmwNkCYN0wAe/GBp8w8u9eXwrF0A==}
+
+  '@paulmillr/qr@0.3.0':
+    resolution: {integrity: sha512-3s/cagXuoXTA2gWSfSfJNanNgm2ifmqgoX8WLOs5//3qrIJ3WWHFjqFqCxvYGf46Afwv6PctT9eAOXLDGwp96Q==}
 
   '@rollup/plugin-data-uri@1.0.3':
     resolution: {integrity: sha512-3GjO7shlJBS1mkUNnnrtIfQh2G9yQhlhHTw6PJ28pGu90PIsvH0+fBrI3jQ7O2um2KTO4MZz7nckIwP8iPmhpg==}
@@ -434,6 +440,8 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.0
 
   '@mercuryworkshop/epoxy-tls@2.1.17-1': {}
+
+  '@paulmillr/qr@0.3.0': {}
 
   '@rollup/plugin-data-uri@1.0.3(rollup@4.28.1)':
     dependencies:
