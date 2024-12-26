@@ -8,16 +8,19 @@ export let wispUrl: string;
 export type AuthStore = {
 	user: UserInfo | null;
 	yggToken: string;
+	msToken: string;
 };
 
 export type TokenStore = {
 	username: string;
 	token: string;
+	ms: string;
 };
 
 export let authstore: AuthStore = {
 	user: null,
 	yggToken: "",
+	msToken: "",
 };
 
 export function initMain(workeruri: string) {
@@ -38,8 +41,14 @@ export function initMain(workeruri: string) {
 		);
 		if (account) {
 			(async () => {
-				authstore.yggToken = await minecraftAuth(account.token);
-				authstore.user = await getProfile(authstore.yggToken);
+				try {
+					authstore.msToken = account.ms;
+					authstore.yggToken = account.token;
+					authstore.user = await getProfile(authstore.yggToken);
+				} catch (e) {
+					authstore.yggToken = await minecraftAuth(authstore.msToken);
+					authstore.user = await getProfile(authstore.yggToken);
+				}
 			})();
 		}
 	}

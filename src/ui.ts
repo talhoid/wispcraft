@@ -410,8 +410,14 @@ export function createUI() {
         );
         if (account) {
             try {
-                authstore.yggToken = account.token;
-                authstore.user = await getProfile(authstore.yggToken);
+				try {
+					authstore.msToken = account.ms;
+					authstore.yggToken = account.token;
+					authstore.user = await getProfile(authstore.yggToken);
+				} catch (e) {
+					authstore.yggToken = await minecraftAuth(authstore.msToken);
+					authstore.user = await getProfile(authstore.yggToken);
+				}
                 localStorage["wispcraft_last_used_account"] = authstore.user.name;
                 removeButton.disabled = false;
                 return;
@@ -473,20 +479,26 @@ export function createUI() {
             accountStatus.innerHTML = "Authenticating...";
 
             const token = await codeGenerator.token;
-            authstore.yggToken = await minecraftAuth(token);
+            authstore.msToken = token;
+            authstore.yggToken = await minecraftAuth(authstore.msToken);
             authstore.user = await getProfile(authstore.yggToken);
             const localAuthStore = localStorage["wispcraft_accounts"];
+            const newAccEntry = {
+                username: authstore.user.name,
+                token: authstore.yggToken,
+                ms: authstore.msToken
+            } as TokenStore;
             if (!localAuthStore) {
                 localStorage["wispcraft_accounts"] = JSON.stringify([
-                    { username: authstore.user.name, token: authstore.yggToken },
+                    newAccEntry,
                 ]);
             } else {
                 const accounts = JSON.parse(localAuthStore);
                 const existingAccount = accounts.findIndex((account: { username: string | undefined; }) => account.username === authstore.user?.name);
                 if (existingAccount != -1) {
-                    accounts.splice(existingAccount, 1, { username: authstore.user.name, token: authstore.yggToken });
+                    accounts.splice(existingAccount, 1, newAccEntry);
                 } else {
-                    accounts.push({ username: authstore.user.name, token: authstore.yggToken });
+                    accounts.push(newAccEntry);
                 }
                 localStorage["wispcraft_accounts"] = JSON.stringify(accounts);
             }

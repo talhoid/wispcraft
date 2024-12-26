@@ -175,7 +175,7 @@ export class EaglerProxy {
 							fakever.extend(new Buffer(brand));
 							fakever.writeBytes([0, 0, 0]);
 						}
-						await this.eagler.write(fakever);
+						this.eagler.write(fakever);
 						return;
 					case Serverbound.EAG_RequestLogin:
 						let username = packet.readString();
@@ -191,7 +191,7 @@ export class EaglerProxy {
 							fakelogin.writeString(this.offlineUsername);
 							fakelogin.writeBytes(offlineUUID(this.offlineUsername));
 						}
-						await this.eagler.write(fakelogin);
+						this.eagler.write(fakelogin);
 						return;
 					case Serverbound.EAG_FinishLogin:
 						// this says finish login but it only finishes the handshake stage since eagler
@@ -203,7 +203,7 @@ export class EaglerProxy {
 						handshake.writeString(this.serverAddress);
 						handshake.writeUShort(this.serverPort);
 						handshake.writeVarInt(State.Login);
-						await this.net.write(handshake);
+						this.net.write(handshake);
 
 						let loginstart = new Packet(Serverbound.LoginStart);
 						if (this.authStore.user) {
@@ -211,7 +211,7 @@ export class EaglerProxy {
 						} else {
 							loginstart.writeString(this.offlineUsername);
 						}
-						await this.net.write(loginstart);
+						this.net.write(loginstart);
 						break;
 				}
 				break;
@@ -223,12 +223,13 @@ export class EaglerProxy {
 				let pk = packet.readVarInt(false)!;
 				switch (pk) {
 					case Serverbound.PluginMessage:
-						packet.readVarInt();
-						let tag = packet.readString();
+						let fard = packet.copy();
+						fard.readVarInt();
+						let tag = fard.readString();
 						if (tag.startsWith("EAG|")) {
 							if (tag == "EAG|Skins-1.8" || tag == "EAG|Capes-1.8") {
 								let isCape = tag[4] == "C";
-								let data = packet.take(packet.length);
+								let data = fard.take(fard.length);
 								handleSkinCape(isCape, data).then((buf) => {
 									if (buf.length == 0) {
 										return;
@@ -290,7 +291,7 @@ export class EaglerProxy {
 							response.data.icon = true;
 						}
 
-						await this.eagler.write(JSON.stringify(response));
+						this.eagler.write(JSON.stringify(response));
 
 						if (body.favicon) {
 							let image = await createImageBitmap(
@@ -324,14 +325,14 @@ export class EaglerProxy {
 							console.error("Disconnect during login: " + reason);
 							let legacyreason = chatToLegacyString(JSON.parse(reason));
 							let eag = createEagKick(legacyreason);
-							await this.eagler.write(eag);
+							this.eagler.write(eag);
 						}
 						break;
 					case Clientbound.LoginSuccess:
 						this.offlineUuid = packet.readString();
 						this.state = State.Play;
 						let eag = new Packet(Clientbound.EAG_FinishLogin);
-						await this.eagler.write(eag);
+						this.eagler.write(eag);
 						break;
 					case Clientbound.SetCompression:
 						let threshold = packet.readVarInt()!;
@@ -346,7 +347,7 @@ export class EaglerProxy {
 								const reason =
 									"This server requires authentication, but you are not logged in!\n Connect to Wispcraft Settings to log in with Microsoft";
 								let eag = createEagKick(reason);
-								await this.eagler.write(eag);
+								this.eagler.write(eag);
 								return;
 							}
 
@@ -381,10 +382,10 @@ export class EaglerProxy {
 							let response = new Packet(Serverbound.EncryptionResponse);
 							response.writeVariableData(new Buffer(encrypedSecret));
 							response.writeVariableData(new Buffer(encryptedChallenge));
-							await this.net.write(response);
-
-							this.encryptor.seed(sharedSecret);
-							this.decryptor.seed(sharedSecret);
+							this.net.write(response).then(() => {
+								this.encryptor.seed(sharedSecret);
+								this.decryptor.seed(sharedSecret);
+							});
 						}
 						break;
 					default:
@@ -400,10 +401,9 @@ export class EaglerProxy {
 						this.compressor.compressionThresh = threshold;
 						break;
 					case Clientbound.PluginMessage:
-						packet.readVarInt();
-						let fard = Buffer.new();
-						fard.extend(packet);
-						let tag = fard.readString();
+						let pk = packet.copy();
+						pk.readVarInt();
+						let tag = pk.readString();
 						if (tag.startsWith("EAG|")) {
 							break;
 						}
