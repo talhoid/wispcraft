@@ -146,7 +146,7 @@ export class EaglerProxy {
 		eaglerOut: BytesWriter,
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
-		public serverPort: number
+		public serverPort: number,
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
@@ -183,7 +183,7 @@ export class EaglerProxy {
 						if (authstore.user) {
 							fakelogin.writeString(authstore.user.name);
 							fakelogin.writeBytes(
-								authstore.user.id.split("").map((x) => parseInt(x))
+								authstore.user.id.split("").map((x) => parseInt(x)),
 							);
 						} else {
 							fakelogin.writeString(this.offlineUsername);
@@ -218,7 +218,7 @@ export class EaglerProxy {
 				break;
 			case State.Login:
 			case State.Play:
-				let pk = packet.readVarInt()!;
+				let pk = packet.readVarInt(true)!;
 				switch (pk) {
 					case Serverbound.PluginMessage:
 						let tag = packet.readString();
@@ -241,7 +241,7 @@ export class EaglerProxy {
 					default:
 						let p = new Packet(pk);
 						p.extend(packet);
-						await this.net.write(p);
+						this.net.write(p);
 						break;
 				}
 		}
@@ -249,12 +249,13 @@ export class EaglerProxy {
 
 	// consumes packets from the network, sends them to eagler
 	async epoxyRead(packet: Buffer) {
-		const pk = packet.readVarInt();
+		let pk;
 		switch (this.state) {
 			case State.Handshaking:
 				// there are no clientbound packets in the handshaking state
 				break;
 			case State.Status:
+				pk = packet.readVarInt();
 				switch (pk) {
 					case Clientbound.StatusResponse:
 						let json = packet.readString();
@@ -296,7 +297,7 @@ export class EaglerProxy {
 									0,
 									0,
 									canvas.width,
-									canvas.height
+									canvas.height,
 								).data;
 								this.eagler.write(new Buffer(new Uint8Array(pixels)));
 							};
@@ -313,6 +314,7 @@ export class EaglerProxy {
 				}
 				break;
 			case State.Login:
+				pk = packet.readVarInt();
 				switch (pk) {
 					case Clientbound.Disconnect:
 						{
@@ -357,7 +359,7 @@ export class EaglerProxy {
 									...new TextEncoder().encode(serverid),
 									...sharedSecret,
 									...publicKey.inner,
-								])
+								]),
 							);
 
 							const [modulus, exponent] = await loadKey(publicKey.inner);
@@ -365,7 +367,7 @@ export class EaglerProxy {
 							let encryptedChallenge = encryptRSA(
 								verifyToken.inner,
 								modulus,
-								exponent
+								exponent,
 							);
 
 							await joinServer(authstore.yggToken, digest, authstore.user.id);
@@ -385,23 +387,8 @@ export class EaglerProxy {
 				break;
 			case State.Play:
 				switch (pk) {
-					case Clientbound.SetCompressionPlay:
-						let threshold = packet.readVarInt();
-						this.decompressor.compressionThresh = threshold;
-						this.compressor.compressionThresh = threshold;
-						break;
-					case Clientbound.PluginMessage:
-						let fard = Buffer.new();
-						fard.extend(packet);
-						let tag = fard.readString();
-						if (tag.startsWith("EAG|")) {
-							break;
-						}
 					default:
-						// send rest of packet to eagler
-						let eag = new Packet(pk);
-						eag.extend(packet);
-						await this.eagler.write(eag);
+						this.eagler.write(packet);
 				}
 		}
 	}

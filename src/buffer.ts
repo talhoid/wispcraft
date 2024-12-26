@@ -98,7 +98,7 @@ export class Buffer {
 	}
 
 	// you can probably make this better
-	readVarInt(): number {
+	readVarInt(take: boolean = true): number {
 		let index = 0;
 		let result = 0;
 		let shift = 0;
@@ -113,7 +113,7 @@ export class Buffer {
 			shift += 7;
 		} while (byte >= 128);
 
-		this.take(index);
+		if (take) this.take(index);
 		return result;
 	}
 
