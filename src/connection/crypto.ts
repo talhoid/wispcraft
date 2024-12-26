@@ -404,7 +404,9 @@ export class Decryptor {
 	seed(iv: Uint8Array) {
 		// this.roundkeys = keygen(iv);
 		// this.feedback = new Uint8Array(iv);
+		const start = performance.now();
 		this.aesCfb = new CFBDecryptor(iv, iv, 1);
+		console.log("Took " + (performance.now() - start) + " to seed Decryptor");
 	}
 
 	constructor() {
@@ -422,7 +424,9 @@ export class Decryptor {
 					controller.enqueue(chunk);
 					return;
 				}
+				const start = performance.now();
 				controller.enqueue(new Buffer(this.aesCfb.decrypt(chunk.inner)));
+				console.log("Took " + (performance.now() - start) + " to transform chunk of size " + chunk.length + " (Decryption)");
 			},
 		});
 	}
@@ -437,7 +441,9 @@ export class Encryptor {
 	seed(iv: Uint8Array) {
 		// this.roundkeys = keygen(iv);
 		// this.feedback = new Uint8Array(iv);
+		const start = performance.now();
 		this.aesCfb = new CFBEncryptor(iv, iv, 1);
+		console.log("Took " + (performance.now() - start) + " to seed Encryptor");
 	}
 
 	transform(chunk: Buffer): Buffer {
@@ -448,7 +454,11 @@ export class Encryptor {
 		//
 		// return new Buffer(out);
 		if (!this.aesCfb) return chunk;
-		return new Buffer(this.aesCfb.encrypt(chunk.inner));
+		const start = performance.now();
+		const retobj = new Buffer(this.aesCfb.encrypt(chunk.inner));
+		console.log("Took " + (performance.now() - start) + " to transform chunk of size " + chunk.length + " (Encryption)");
+		return retobj;
+		
 	}
 }
 
