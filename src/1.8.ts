@@ -220,9 +220,10 @@ export class EaglerProxy {
 				break;
 			case State.Login:
 			case State.Play:
-				let pk = packet.readVarInt()!;
+				let pk = packet.readVarInt(false)!;
 				switch (pk) {
 					case Serverbound.PluginMessage:
+						packet.readVarInt();
 						let tag = packet.readString();
 						if (tag.startsWith("EAG|")) {
 							if (tag == "EAG|Skins-1.8" || tag == "EAG|Capes-1.8") {
@@ -241,9 +242,7 @@ export class EaglerProxy {
 							break;
 						}
 					default:
-						let p = new Packet(pk);
-						p.extend(packet);
-						await this.net.write(p);
+						this.net.write(packet);
 						break;
 				}
 		}
@@ -252,12 +251,13 @@ export class EaglerProxy {
 	// consumes packets from the network, sends them to eagler
 	async epoxyRead(packet: Buffer) {
 		packet = new Buffer(packet.inner); // proto bug
-		const pk = packet.readVarInt();
+		let pk;
 		switch (this.state) {
 			case State.Handshaking:
 				// there are no clientbound packets in the handshaking state
 				break;
 			case State.Status:
+				pk = packet.readVarInt();
 				switch (pk) {
 					case Clientbound.StatusResponse:
 						let json = packet.readString();
@@ -285,7 +285,7 @@ export class EaglerProxy {
 							else if (body.description.extra) {
 								response.data.motd = [chatToLegacyString(body.description)];
 							} else response.data.motd = [body.description.text];
-						
+
 						if (body.favicon) {
 							response.data.icon = true;
 						}
@@ -293,7 +293,9 @@ export class EaglerProxy {
 						await this.eagler.write(JSON.stringify(response));
 
 						if (body.favicon) {
-							let image = await createImageBitmap(await (await fetch(body.favicon)).blob());
+							let image = await createImageBitmap(
+								await (await fetch(body.favicon)).blob(),
+							);
 							let canvas = new OffscreenCanvas(image.width, image.height);
 							let ctx = canvas.getContext("2d")!;
 							ctx.drawImage(image, 0, 0);
@@ -314,6 +316,7 @@ export class EaglerProxy {
 				}
 				break;
 			case State.Login:
+				pk = packet.readVarInt();
 				switch (pk) {
 					case Clientbound.Disconnect:
 						{
@@ -389,13 +392,15 @@ export class EaglerProxy {
 				}
 				break;
 			case State.Play:
-				switch (pk) {
+				switch (packet.readVarInt(false)) {
 					case Clientbound.SetCompressionPlay:
+						packet.readVarInt();
 						let threshold = packet.readVarInt();
 						this.decompressor.compressionThresh = threshold;
 						this.compressor.compressionThresh = threshold;
 						break;
 					case Clientbound.PluginMessage:
+						packet.readVarInt();
 						let fard = Buffer.new();
 						fard.extend(packet);
 						let tag = fard.readString();
@@ -404,9 +409,7 @@ export class EaglerProxy {
 						}
 					default:
 						// send rest of packet to eagler
-						let eag = new Packet(pk);
-						eag.extend(packet);
-						await this.eagler.write(eag);
+						this.eagler.write(packet);
 				}
 		}
 	}
