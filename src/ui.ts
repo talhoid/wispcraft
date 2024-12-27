@@ -7,7 +7,7 @@ let keydownListeners: Array<EventListenerOrEventListenerObject> = [];
 const nativeAddEventListener = window.addEventListener;
 window.addEventListener = (
 	type: string,
-	listener: EventListenerOrEventListenerObject
+	listener: EventListenerOrEventListenerObject,
 ) => {
 	if (type == "keydown") {
 		keydownListeners.push(listener);
@@ -317,7 +317,7 @@ export function createUI() {
 	const auth = document.querySelector("#auth") as HTMLDivElement;
 
 	const settingsTab = document.querySelector(
-		"#settings_tab"
+		"#settings_tab",
 	) as HTMLSpanElement;
 	const authTab = document.querySelector("#auth_tab") as HTMLSpanElement;
 
@@ -325,31 +325,31 @@ export function createUI() {
 
 	wispInput.addEventListener("focusin", () =>
 		keydownListeners.map((listener) =>
-			window.removeEventListener("keydown", listener)
-		)
+			window.removeEventListener("keydown", listener),
+		),
 	);
 
 	wispInput.addEventListener("focusout", () =>
 		keydownListeners.map((listener) =>
-			nativeAddEventListener("keydown", listener)
-		)
+			nativeAddEventListener("keydown", listener),
+		),
 	);
 	const saveButton = document.querySelector(
-		"#save_button"
+		"#save_button",
 	) as HTMLButtonElement;
 	const saveStatus = document.querySelector(
-		"#save_status"
+		"#save_status",
 	) as HTMLButtonElement;
 
 	const accountSelect = document.querySelector(
-		"#account_select"
+		"#account_select",
 	) as HTMLSelectElement;
 	const addButton = document.querySelector("#addbutton") as HTMLButtonElement;
 	const removeButton = document.querySelector(
-		"#removebutton"
+		"#removebutton",
 	) as HTMLButtonElement;
 	const accountStatus = document.querySelector(
-		"#account_status"
+		"#account_status",
 	) as HTMLParagraphElement;
 
 	if (localStorage["wispcraft_wispurl"]) {
@@ -358,7 +358,7 @@ export function createUI() {
 
 	if (localStorage["wispcraft_accounts"]) {
 		const accounts = JSON.parse(
-			localStorage["wispcraft_accounts"]
+			localStorage["wispcraft_accounts"],
 		) as TokenStore[];
 		for (const account of accounts) {
 			const option = document.createElement("option");
@@ -411,10 +411,10 @@ export function createUI() {
 			return;
 		}
 		const accounts = JSON.parse(
-			localStorage["wispcraft_accounts"]
+			localStorage["wispcraft_accounts"],
 		) as TokenStore[];
 		const account = accounts.find(
-			(account) => account.username === accountSelect.value
+			(account) => account.username === accountSelect.value,
 		);
 		if (account) {
 			try {
@@ -452,7 +452,7 @@ export function createUI() {
 		const accounts = JSON.parse(localAuthStore);
 		const existingAccount = accounts.findIndex(
 			(account: { username: string | undefined }) =>
-				account.username === accountSelect.value
+				account.username === accountSelect.value,
 		);
 		if (existingAccount == -1) {
 			return;
@@ -473,18 +473,23 @@ export function createUI() {
 				scale: 6,
 				border: 1,
 			});
-			accountStatus.innerHTML = `Click <a href="${linkUrl}" target="_blank">this link</a> and use code <input id="auth_code" class="input" style="width:8em;text-align:center;" type="text" readonly value="${codeGenerator.code}" /> for logging in.<br /><br />${qrSvg}<br />`;
+			accountStatus.innerHTML = `Scan QR Code or click <a id="mslink" href="javascript:void(0)" target="_blank">this link</a> and use code <input id="auth_code" class="input" style="width:8em;text-align:center;" type="text" readonly value="${codeGenerator.code}" /> for logging in.<br /><br />${qrSvg}<br />`;
 			const authCodeBox = document.querySelector(
-				"#auth_code"
+				"#auth_code",
 			) as HTMLInputElement;
 			authCodeBox.onclick = () => {
 				authCodeBox.select();
 				authCodeBox.setSelectionRange(0, authCodeBox.value.length);
 				navigator.clipboard.writeText(authCodeBox.value);
 			};
-			const auth = window.open(linkUrl, "", "height=500,width=350");
+
+			accountStatus.querySelector<HTMLAnchorElement>("#mslink")!.onclick =
+				async () => {
+					const auth = window.open(linkUrl, "", "height=500,width=350");
+					await codeGenerator.token;
+					auth?.close();
+				};
 			await codeGenerator.token;
-			auth?.close();
 			accountStatus.innerHTML = "Authenticating...";
 
 			const token = await codeGenerator.token;
@@ -503,7 +508,7 @@ export function createUI() {
 				const accounts = JSON.parse(localAuthStore);
 				const existingAccount = accounts.findIndex(
 					(account: { username: string | undefined }) =>
-						account.username === authstore.user?.name
+						account.username === authstore.user?.name,
 				);
 				if (existingAccount != -1) {
 					accounts.splice(existingAccount, 1, newAccEntry);
