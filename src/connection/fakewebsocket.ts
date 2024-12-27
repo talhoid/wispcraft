@@ -102,6 +102,8 @@ class SettingsWS extends EventTarget {
 							max: 0,
 							players: [],
 							motd: ["Sign in with Microsoft", "Configure Proxy URL"],
+							//@ts-expect-error these get filled in by rollup
+							players: [`Version: ${self.VERSION}`, `Build: ${self.COMMITHASH}`],
 						},
 					}),
 				})
