@@ -87,12 +87,15 @@ class SettingsWS extends EventTarget {
 	}
 	send(chunk: Uint8Array | ArrayBuffer | string) {
 		if (typeof chunk === "string" && chunk.toLowerCase() === "accept: motd") {
+			//@ts-expect-error this gets filled in by rollup
+			const ver = self.VERSION;
+			const accs = localStorage["wispcraft_accounts"] ? JSON.parse(localStorage["wispcraft_accounts"]).length : 0;
 			this.dispatchEvent(
 				new MessageEvent("message", {
 					data: JSON.stringify({
 						name: "Settings",
 						brand: "mercuryworkshop",
-						vers: "wispcraft/1.0",
+						vers: "wispcraft/" + ver,
 						cracked: true,
 						time: Date.now(),
 						uuid: "00000000-0000-0000-0000-000000000000",
@@ -100,12 +103,11 @@ class SettingsWS extends EventTarget {
 						data: {
 							cache: false,
 							icon: true,
-							online: 0,
+							online: accs,
 							max: 0,
-							players: [],
 							motd: ["Sign in with Microsoft", "Configure Proxy URL"],
-							//@ts-expect-error these get filled in by rollup
-							players: [`Version: ${self.VERSION}`, `Build: ${self.COMMITHASH}`],
+							//@ts-expect-error this gets filled in by rollup
+							players: [`Version: ${ver}`, `Build: ${self.COMMITHASH}`],
 						},
 					}),
 				})
