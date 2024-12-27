@@ -135,9 +135,12 @@ class SettingsWS extends EventTarget {
 class AutoWS extends EventTarget {
 	inner: WebSocket | WispWS | null;
 	url: string;
+	queue: Array<Uint8Array | ArrayBuffer | string>;
 
 	constructor(uri: string, protocols?: string | string[]) {
 		super();
+		this.queue = [];
+		let flag2 = false;
 		const url = new URL(uri);
 		this.inner = null;
 		this.url = url.protocol + "//java://" + url.hostname;
@@ -162,6 +165,10 @@ class AutoWS extends EventTarget {
 				this.inner.addEventListener("close", el);
 				this.inner.addEventListener("error", el);
 				flag = true;
+				for (let item of this.queue) {
+					this.inner.send(item);
+				}
+				this.queue.length = 0;
 			}
 			el(event);
 		};
@@ -174,6 +181,7 @@ class AutoWS extends EventTarget {
 			called = true;
 			if (ti != -1) {
 				clearTimeout(ti);
+				ti = -1;
 			}
 			if (this.inner != null) {
 				if (flag) {
@@ -186,43 +194,58 @@ class AutoWS extends EventTarget {
 				this.inner.removeEventListener("open", el3);
 				this.inner.removeEventListener("message", el);
 			}
+			if (!flag2 && url.protocol.length == 3) {
+				flag2 = true;
+				called = false;
+				flag = false;
+				const bt = (this.inner as WebSocket)?.binaryType || "arraybuffer";
+				this.inner?.close();
+				this.inner = null;
+				ti = setTimeout(el2, 2000);
+				try {
+					this.inner = new NativeWebSocket("ws" + uri.slice(1), protocols);
+					this.inner.binaryType = bt;
+					this.inner.addEventListener("close", el2);
+					this.inner.addEventListener("error", el2);
+					this.inner.addEventListener("open", el3);
+					this.inner.addEventListener("message", el);
+				} catch (e) {
+					el2();
+				}
+				return;
+			}
 			this.inner = new WispWS(this.url);
 			this.inner.addEventListener("close", el);
 			this.inner.addEventListener("error", el);
 			this.inner.addEventListener("open", el);
 			this.inner.addEventListener("message", el);
 			this.inner.start();
+			for (let item of this.queue) {
+				this.inner.send(item);
+			}
+			this.queue.length = 0;
 		};
-		ti = setTimeout(el2, 3500);
-		let ws: WebSocket;
+		ti = setTimeout(el2, 2000);
 		try {
-			ws = new NativeWebSocket(uri, protocols);
+			const ws = new NativeWebSocket(uri, protocols);
+			if (this.inner != null) {
+				ws.close();
+				return;
+			}
+			this.inner = ws;
+			this.inner.addEventListener("close", el2);
+			this.inner.addEventListener("error", el2);
+			this.inner.addEventListener("open", el3);
+			this.inner.addEventListener("message", el);
 		} catch (e) {
-			if (url.protocol.length != 3) {
-				el2();
-				return;
-			}
-			try {
-				const i = uri.indexOf(":");
-				ws = new NativeWebSocket(uri.slice(0, i) + "s" + uri.slice(i), protocols);
-			} catch (e2) {
-				el2();
-				return;
-			}
+			el2();
 		}
-		if (this.inner != null) {
-			ws.close();
-			return;
-		}
-		this.inner = ws;
-		this.inner.addEventListener("close", el2);
-		this.inner.addEventListener("error", el2);
-		this.inner.addEventListener("open", el3);
-		this.inner.addEventListener("message", el);
 	}
 
 	send(chunk: Uint8Array | ArrayBuffer | string) {
-		if (this.inner != null) {
+		if (this.inner == null || this.inner.readyState != WebSocket.OPEN) {
+			this.queue.push(chunk);
+		} else {
 			return this.inner.send(chunk);
 		}
 	}
