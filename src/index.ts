@@ -31,11 +31,11 @@ wispUrl =
 
 if (localStorage["wispcraft_accounts"]) {
 	const accounts = JSON.parse(
-		localStorage["wispcraft_accounts"],
+		localStorage["wispcraft_accounts"]
 	) as TokenStore[];
 	const account = accounts.find(
 		(account) =>
-			account.username === localStorage["wispcraft_last_used_account"],
+			account.username === localStorage["wispcraft_last_used_account"]
 	);
 	if (account) {
 		(async () => {

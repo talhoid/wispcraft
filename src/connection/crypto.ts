@@ -426,7 +426,13 @@ export class Decryptor {
 				}
 				const start = performance.now();
 				controller.enqueue(new Buffer(this.aesCfb.decrypt(chunk.inner)));
-				console.log("Took " + (performance.now() - start) + " to transform chunk of size " + chunk.length + " (Decryption)");
+				console.log(
+					"Took " +
+						(performance.now() - start) +
+						" to transform chunk of size " +
+						chunk.length +
+						" (Decryption)"
+				);
 			},
 		});
 	}
@@ -456,9 +462,14 @@ export class Encryptor {
 		if (!this.aesCfb) return chunk;
 		const start = performance.now();
 		const retobj = new Buffer(this.aesCfb.encrypt(chunk.inner));
-		console.log("Took " + (performance.now() - start) + " to transform chunk of size " + chunk.length + " (Encryption)");
+		console.log(
+			"Took " +
+				(performance.now() - start) +
+				" to transform chunk of size " +
+				chunk.length +
+				" (Encryption)"
+		);
 		return retobj;
-		
 	}
 }
 

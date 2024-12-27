@@ -92,12 +92,7 @@ async function funnyFetch(url: string): Promise<Tex> {
 
 function makeImageData(width: number, height: number): ImageData {
 	const canvas = new OffscreenCanvas(width, height);
-	return canvas.getContext("2d")!.getImageData(
-		0,
-		0,
-		width,
-		height
-	);
+	return canvas.getContext("2d")!.getImageData(0, 0, width, height);
 }
 
 async function blobToImageData(blob: Blob): Promise<ImageData> {

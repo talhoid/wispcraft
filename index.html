@@ -202,11 +202,8 @@
 							<script type="text/javascript">
 								${atob(getWispcraftBundle())}
 							<${"/"}script>
-						`
-						content =
-							content.slice(0, index) +
-							inject + 
-							content.slice(index);
+						`;
+						content = content.slice(0, index) + inject + content.slice(index);
 						const blob = new Blob([content], {
 							type: "text/html; charset=utf-8",
 						});
@@ -224,7 +221,7 @@
 		<script id="wispcraft-bundled">
 			// wispcraft will be bundled and stored here
 			function getWispcraftBundle() {
-				WISPCRAFTSRCBUNDLE
+				WISPCRAFTSRCBUNDLE;
 			}
 		</script>
 	</body>

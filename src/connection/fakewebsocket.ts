@@ -61,7 +61,10 @@ class WispWS extends EventTarget {
 	}
 
 	close() {
-		if (this.readyState == WebSocket.CLOSING || this.readyState == WebSocket.CLOSED) {
+		if (
+			this.readyState == WebSocket.CLOSING ||
+			this.readyState == WebSocket.CLOSED
+		) {
 			return;
 		}
 		this.readyState = WebSocket.CLOSING;
@@ -101,7 +104,7 @@ class SettingsWS extends EventTarget {
 							motd: ["Sign in with Microsoft", "Configure Proxy URL"],
 						},
 					}),
-				}),
+				})
 			);
 			fetch(wispcraft)
 				.then((response) => response.blob())
@@ -112,7 +115,7 @@ class SettingsWS extends EventTarget {
 					ctx.drawImage(image, 0, 0);
 					let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 					this.dispatchEvent(
-						new MessageEvent("message", { data: new Uint8Array(pixels) }),
+						new MessageEvent("message", { data: new Uint8Array(pixels) })
 					);
 				});
 		} else {
@@ -124,7 +127,7 @@ class SettingsWS extends EventTarget {
 			this.dispatchEvent(new CloseEvent("close"));
 		}
 	}
-	close() { }
+	close() {}
 }
 
 class AutoWS extends EventTarget {
@@ -215,7 +218,7 @@ class AutoWS extends EventTarget {
 		if (this.inner != null) {
 			try {
 				return this.inner.close();
-			} catch (e) { }
+			} catch (e) {}
 		}
 	}
 

@@ -56,7 +56,7 @@ export class Connection {
 
 	constructor(
 		uri: string,
-		private authStore: AuthStore,
+		private authStore: AuthStore
 	) {
 		const [processIn, eaglerIn] = link<Buffer>();
 		this.processIn = processIn.getReader();
@@ -80,7 +80,7 @@ export class Connection {
 					headers: {
 						Accept: "application/dns-json",
 					},
-				},
+				}
 			);
 			const dnsResponse = await dns.json();
 			if (dnsResponse.Answer?.length) {
@@ -91,7 +91,7 @@ export class Connection {
 			}
 		} catch {}
 		const conn = await connect_tcp(
-			connectUrl ? connectUrl.host : this.url.host,
+			connectUrl ? connectUrl.host : this.url.host
 		);
 		connectcallback();
 		const writer = bufferWriter(conn.write.getWriter());
@@ -108,7 +108,7 @@ export class Connection {
 			}).getWriter(),
 			this.url.hostname,
 			this.url.port ? parseInt(this.url.port) : 25565,
-			this.authStore,
+			this.authStore
 		);
 
 		// epoxy -> process -> (hopefully) eagler task
@@ -119,9 +119,10 @@ export class Connection {
 					.pipeThrough(bufferTransformer())
 					.pipeThrough(impl.decryptor.transform)
 					.pipeThrough(lengthTransformer())
-					.pipeThrough(impl.decompressor.transform).getReader(),
+					.pipeThrough(impl.decompressor.transform)
+					.getReader(),
 				100,
-				() => backlog++,
+				() => backlog++
 			).getReader();
 
 			// setInterval(() => console.log("epoxy backlog ", backlog), 1000);
@@ -143,7 +144,7 @@ export class Connection {
 			const reader = eagerlyPoll<Buffer>(
 				this.processIn,
 				100,
-				() => backlog++,
+				() => backlog++
 			).getReader();
 
 			// setInterval(() => console.log("eagler backlog ", backlog), 1000);
@@ -152,7 +153,9 @@ export class Connection {
 				const { done, value } = await reader.read();
 				if (done || !value) return;
 				await impl.eaglerRead(value);
-				console.log("Took " + (performance.now() - start) + " to eaglerRead packet");
+				console.log(
+					"Took " + (performance.now() - start) + " to eaglerRead packet"
+				);
 				backlog--;
 			}
 

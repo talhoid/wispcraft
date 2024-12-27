@@ -147,7 +147,7 @@ export class EaglerProxy {
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
 		public serverPort: number,
-		public authStore: AuthStore,
+		public authStore: AuthStore
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
@@ -185,7 +185,7 @@ export class EaglerProxy {
 						if (this.authStore.user) {
 							fakelogin.writeString(this.authStore.user.name);
 							fakelogin.writeBytes(
-								this.authStore.user.id.split("").map((x) => parseInt(x)),
+								this.authStore.user.id.split("").map((x) => parseInt(x))
 							);
 						} else {
 							fakelogin.writeString(this.offlineUsername);
@@ -295,7 +295,7 @@ export class EaglerProxy {
 
 						if (body.favicon) {
 							let image = await createImageBitmap(
-								await (await fetch(body.favicon)).blob(),
+								await (await fetch(body.favicon)).blob()
 							);
 							let canvas = new OffscreenCanvas(image.width, image.height);
 							let ctx = canvas.getContext("2d")!;
@@ -304,7 +304,7 @@ export class EaglerProxy {
 								0,
 								0,
 								canvas.width,
-								canvas.height,
+								canvas.height
 							).data;
 							this.eagler.write(new Buffer(new Uint8Array(pixels)));
 						}
@@ -362,7 +362,7 @@ export class EaglerProxy {
 									...new TextEncoder().encode(serverid),
 									...sharedSecret,
 									...publicKey.inner,
-								]),
+								])
 							);
 
 							const [modulus, exponent] = await loadKey(publicKey.inner);
@@ -370,13 +370,13 @@ export class EaglerProxy {
 							let encryptedChallenge = encryptRSA(
 								verifyToken.inner,
 								modulus,
-								exponent,
+								exponent
 							);
 							console.log("joining with: ", this.authStore);
 							await joinServer(
 								this.authStore.yggToken,
 								digest,
-								this.authStore.user.id,
+								this.authStore.user.id
 							);
 
 							let response = new Packet(Serverbound.EncryptionResponse);

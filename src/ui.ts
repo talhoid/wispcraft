@@ -3,19 +3,20 @@ import { reconnect, set_wisp_server } from "./connection/epoxy";
 import { authstore, TokenStore } from ".";
 import encodeQR from "@paulmillr/qr";
 
+let keydownListeners: Array<EventListenerOrEventListenerObject> = [];
+const nativeAddEventListener = window.addEventListener;
+window.addEventListener = (
+	type: string,
+	listener: EventListenerOrEventListenerObject
+) => {
+	if (type == "keydown") {
+		keydownListeners.push(listener);
+	}
+	nativeAddEventListener(type, listener);
+};
+
 export function createUI() {
-    let keydownListeners: Array<EventListenerOrEventListenerObject> = [];
-    const nativeAddEventListener = window.addEventListener;
-    window.addEventListener = (
-        type: string,
-        listener: EventListenerOrEventListenerObject,
-    ) => {
-        if (type == "keydown") {
-            keydownListeners.push(listener);
-        }
-        nativeAddEventListener(type, listener);
-    };
-    const ui = `
+	const ui = `
       	<style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&family=Rajdhani:wght@700&display=swap');
 
@@ -305,111 +306,113 @@ export function createUI() {
             </div>
         </div>`;
 
-    document.body.insertAdjacentHTML("beforeend", ui);
+	document.body.insertAdjacentHTML("beforeend", ui);
 
-    const settings = document.querySelector("#settings") as HTMLDivElement;
-    const auth = document.querySelector("#auth") as HTMLDivElement;
+	const settings = document.querySelector("#settings") as HTMLDivElement;
+	const auth = document.querySelector("#auth") as HTMLDivElement;
 
-    const settingsTab = document.querySelector(
-        "#settings_tab",
-    ) as HTMLSpanElement;
-    const authTab = document.querySelector("#auth_tab") as HTMLSpanElement;
+	const settingsTab = document.querySelector(
+		"#settings_tab"
+	) as HTMLSpanElement;
+	const authTab = document.querySelector("#auth_tab") as HTMLSpanElement;
 
-    const wispInput = document.querySelector("#wisp_url") as HTMLInputElement;
+	const wispInput = document.querySelector("#wisp_url") as HTMLInputElement;
 
-    wispInput.addEventListener("focusin", () =>
-        keydownListeners.map((listener) =>
-            window.removeEventListener("keydown", listener),
-        ),
-    );
+	wispInput.addEventListener("focusin", () =>
+		keydownListeners.map((listener) =>
+			window.removeEventListener("keydown", listener)
+		)
+	);
 
-    wispInput.addEventListener("focusout", () =>
-        keydownListeners.map((listener) =>
-            nativeAddEventListener("keydown", listener),
-        ),
-    );
-    const saveButton = document.querySelector(
-        "#save_button",
-    ) as HTMLButtonElement;
-    const saveStatus = document.querySelector(
-        "#save_status",
-    ) as HTMLButtonElement;
+	wispInput.addEventListener("focusout", () =>
+		keydownListeners.map((listener) =>
+			nativeAddEventListener("keydown", listener)
+		)
+	);
+	const saveButton = document.querySelector(
+		"#save_button"
+	) as HTMLButtonElement;
+	const saveStatus = document.querySelector(
+		"#save_status"
+	) as HTMLButtonElement;
 
-    const accountSelect = document.querySelector(
-        "#account_select",
-    ) as HTMLSelectElement;
-    const addButton = document.querySelector("#addbutton") as HTMLButtonElement;
-    const removeButton = document.querySelector("#removebutton") as HTMLButtonElement;
-    const accountStatus = document.querySelector(
-        "#account_status",
-    ) as HTMLParagraphElement;
+	const accountSelect = document.querySelector(
+		"#account_select"
+	) as HTMLSelectElement;
+	const addButton = document.querySelector("#addbutton") as HTMLButtonElement;
+	const removeButton = document.querySelector(
+		"#removebutton"
+	) as HTMLButtonElement;
+	const accountStatus = document.querySelector(
+		"#account_status"
+	) as HTMLParagraphElement;
 
-    if (localStorage["wispcraft_wispurl"]) {
-        wispInput.value = localStorage["wispcraft_wispurl"] as string;
-    }
+	if (localStorage["wispcraft_wispurl"]) {
+		wispInput.value = localStorage["wispcraft_wispurl"] as string;
+	}
 
-    if (localStorage["wispcraft_accounts"]) {
-        const accounts = JSON.parse(
-            localStorage["wispcraft_accounts"],
-        ) as TokenStore[];
-        for (const account of accounts) {
-            const option = document.createElement("option");
-            option.value = account.username;
-            option.innerText = account.username;
-            accountSelect.add(option);
-        }
-    }
+	if (localStorage["wispcraft_accounts"]) {
+		const accounts = JSON.parse(
+			localStorage["wispcraft_accounts"]
+		) as TokenStore[];
+		for (const account of accounts) {
+			const option = document.createElement("option");
+			option.value = account.username;
+			option.innerText = account.username;
+			accountSelect.add(option);
+		}
+	}
 
-    if (localStorage["wispcraft_last_used_account"]) {
-        accountSelect.value = localStorage["wispcraft_last_used_account"];
-    }
+	if (localStorage["wispcraft_last_used_account"]) {
+		accountSelect.value = localStorage["wispcraft_last_used_account"];
+	}
 
-    saveButton.onclick = async () => {
-        try {
-            const value = wispInput.value;
-            localStorage.setItem("wispcraft_wispurl", value);
-            set_wisp_server(value);
-            await reconnect();
-            saveStatus.innerText = `Wisp server set successfully!`;
-        } catch (e) {
-            saveStatus.innerText = `An error occured: ${new String(e).toString()}`;
-        }
-    };
+	saveButton.onclick = async () => {
+		try {
+			const value = wispInput.value;
+			localStorage.setItem("wispcraft_wispurl", value);
+			set_wisp_server(value);
+			await reconnect();
+			saveStatus.innerText = `Wisp server set successfully!`;
+		} catch (e) {
+			saveStatus.innerText = `An error occured: ${new String(e).toString()}`;
+		}
+	};
 
-    settingsTab.onclick = () => {
-        const tabs = document.querySelectorAll(".tabs span");
-        const pages = document.querySelectorAll(".settings-ui .content");
+	settingsTab.onclick = () => {
+		const tabs = document.querySelectorAll(".tabs span");
+		const pages = document.querySelectorAll(".settings-ui .content");
 
-        for (const tab of tabs) {
-            tab.classList.remove("selected");
-        }
+		for (const tab of tabs) {
+			tab.classList.remove("selected");
+		}
 
-        for (const page of pages) {
-            page.classList.remove("shown");
-            page.classList.add("hidden");
-        }
+		for (const page of pages) {
+			page.classList.remove("shown");
+			page.classList.add("hidden");
+		}
 
-        settings.classList.remove("hidden");
-        settings.classList.add("shown");
-        settingsTab.classList.add("selected");
-    };
+		settings.classList.remove("hidden");
+		settings.classList.add("shown");
+		settingsTab.classList.add("selected");
+	};
 
-    accountSelect.onchange = async () => {
-        if (accountSelect.value === "no-account") {
-            authstore.user = null;
-            authstore.yggToken = "";
-            localStorage["wispcraft_last_used_account"] = "no-account";
-            removeButton.disabled = true;
-            return;
-        }
-        const accounts = JSON.parse(
-            localStorage["wispcraft_accounts"],
-        ) as TokenStore[];
-        const account = accounts.find(
-            (account) => account.username === accountSelect.value,
-        );
-        if (account) {
-            try {
+	accountSelect.onchange = async () => {
+		if (accountSelect.value === "no-account") {
+			authstore.user = null;
+			authstore.yggToken = "";
+			localStorage["wispcraft_last_used_account"] = "no-account";
+			removeButton.disabled = true;
+			return;
+		}
+		const accounts = JSON.parse(
+			localStorage["wispcraft_accounts"]
+		) as TokenStore[];
+		const account = accounts.find(
+			(account) => account.username === accountSelect.value
+		);
+		if (account) {
+			try {
 				try {
 					authstore.msToken = account.ms;
 					authstore.yggToken = account.token;
@@ -418,129 +421,131 @@ export function createUI() {
 					authstore.yggToken = await minecraftAuth(authstore.msToken);
 					authstore.user = await getProfile(authstore.yggToken);
 				}
-                localStorage["wispcraft_last_used_account"] = authstore.user.name;
-                removeButton.disabled = false;
-                return;
-            } catch (e) {
-                console.error(e);
-                removeAcc();
-            }
-        }
-        accountSelect.value = "no-account";
-        authstore.user = null;
-        authstore.yggToken = "";
-        localStorage["wispcraft_last_used_account"] = "no-account";
-        removeButton.disabled = true;
-    };
+				localStorage["wispcraft_last_used_account"] = authstore.user.name;
+				removeButton.disabled = false;
+				return;
+			} catch (e) {
+				console.error(e);
+				removeAcc();
+			}
+		}
+		accountSelect.value = "no-account";
+		authstore.user = null;
+		authstore.yggToken = "";
+		localStorage["wispcraft_last_used_account"] = "no-account";
+		removeButton.disabled = true;
+	};
 
-    const removeAcc = () => {
-        if (accountSelect.value === "no-account") {
-            return;
-        }
-        const localAuthStore = localStorage["wispcraft_accounts"];
-        if (!localAuthStore) {
-            return;
-        }
-        const accounts = JSON.parse(localAuthStore);
-        const existingAccount = accounts.findIndex((account: { username: string | undefined; }) => account.username === accountSelect.value);
-        if (existingAccount == -1) {
-            return;
-        }
-        accounts.splice(existingAccount, 1);
-        localStorage["wispcraft_accounts"] = JSON.stringify(accounts);
-        accountSelect.remove(accountSelect.selectedIndex);
-    };
+	const removeAcc = () => {
+		if (accountSelect.value === "no-account") {
+			return;
+		}
+		const localAuthStore = localStorage["wispcraft_accounts"];
+		if (!localAuthStore) {
+			return;
+		}
+		const accounts = JSON.parse(localAuthStore);
+		const existingAccount = accounts.findIndex(
+			(account: { username: string | undefined }) =>
+				account.username === accountSelect.value
+		);
+		if (existingAccount == -1) {
+			return;
+		}
+		accounts.splice(existingAccount, 1);
+		localStorage["wispcraft_accounts"] = JSON.stringify(accounts);
+		accountSelect.remove(accountSelect.selectedIndex);
+	};
 
-    removeButton.onclick = removeAcc;
+	removeButton.onclick = removeAcc;
 
-    addButton.onclick = async () => {
-        try {
-            addButton.disabled = true;
-            const codeGenerator = await deviceCodeAuth();
-            const linkUrl = "https://microsoft.com/link?otc=" + codeGenerator.code;
-            const qrSvg = encodeQR(linkUrl, "svg", {
-                scale: 6,
-                border: 1
-            });
-            accountStatus.innerHTML = `Click <a href="${linkUrl}" target="_blank">this link</a> and use code <input id="auth_code" class="input" style="width:8em;text-align:center;" type="text" readonly value="${codeGenerator.code}" /> for logging in.<br /><br />${qrSvg}<br />`;
-            const authCodeBox = document.querySelector("#auth_code") as HTMLInputElement;
-            authCodeBox.onclick = () => {
-                authCodeBox.select();
-                authCodeBox.setSelectionRange(0, authCodeBox.value.length);
-                navigator.clipboard.writeText(authCodeBox.value);
-            };
-            const auth = window.open(
-                linkUrl,
-                "",
-                "height=500,width=350",
-            );
-            await codeGenerator.token;
-            auth?.close();
-            accountStatus.innerHTML = "Authenticating...";
+	addButton.onclick = async () => {
+		try {
+			addButton.disabled = true;
+			const codeGenerator = await deviceCodeAuth();
+			const linkUrl = "https://microsoft.com/link?otc=" + codeGenerator.code;
+			const qrSvg = encodeQR(linkUrl, "svg", {
+				scale: 6,
+				border: 1,
+			});
+			accountStatus.innerHTML = `Click <a href="${linkUrl}" target="_blank">this link</a> and use code <input id="auth_code" class="input" style="width:8em;text-align:center;" type="text" readonly value="${codeGenerator.code}" /> for logging in.<br /><br />${qrSvg}<br />`;
+			const authCodeBox = document.querySelector(
+				"#auth_code"
+			) as HTMLInputElement;
+			authCodeBox.onclick = () => {
+				authCodeBox.select();
+				authCodeBox.setSelectionRange(0, authCodeBox.value.length);
+				navigator.clipboard.writeText(authCodeBox.value);
+			};
+			const auth = window.open(linkUrl, "", "height=500,width=350");
+			await codeGenerator.token;
+			auth?.close();
+			accountStatus.innerHTML = "Authenticating...";
 
-            const token = await codeGenerator.token;
-            authstore.msToken = token;
-            authstore.yggToken = await minecraftAuth(authstore.msToken);
-            authstore.user = await getProfile(authstore.yggToken);
-            const localAuthStore = localStorage["wispcraft_accounts"];
-            const newAccEntry = {
-                username: authstore.user.name,
-                token: authstore.yggToken,
-                ms: authstore.msToken
-            } as TokenStore;
-            if (!localAuthStore) {
-                localStorage["wispcraft_accounts"] = JSON.stringify([
-                    newAccEntry,
-                ]);
-            } else {
-                const accounts = JSON.parse(localAuthStore);
-                const existingAccount = accounts.findIndex((account: { username: string | undefined; }) => account.username === authstore.user?.name);
-                if (existingAccount != -1) {
-                    accounts.splice(existingAccount, 1, newAccEntry);
-                } else {
-                    accounts.push(newAccEntry);
-                }
-                localStorage["wispcraft_accounts"] = JSON.stringify(accounts);
-            }
-            const selector = document.createElement("option");
-            selector.value = authstore.user.name;
-            selector.innerText = authstore.user.name;
-            accountSelect.add(selector);
-            accountStatus.innerHTML = "";
-            accountSelect.value = authstore.user.name;
-            addButton.disabled = false;
-            localStorage["wispcraft_last_used_account"] = authstore.user.name;
-        } catch (e) {
-            accountStatus.innerHTML = `An error occured: <code>${new String(e).toString()}</code>`;
-            addButton.disabled = false;
-        }
-    };
+			const token = await codeGenerator.token;
+			authstore.msToken = token;
+			authstore.yggToken = await minecraftAuth(authstore.msToken);
+			authstore.user = await getProfile(authstore.yggToken);
+			const localAuthStore = localStorage["wispcraft_accounts"];
+			const newAccEntry = {
+				username: authstore.user.name,
+				token: authstore.yggToken,
+				ms: authstore.msToken,
+			} as TokenStore;
+			if (!localAuthStore) {
+				localStorage["wispcraft_accounts"] = JSON.stringify([newAccEntry]);
+			} else {
+				const accounts = JSON.parse(localAuthStore);
+				const existingAccount = accounts.findIndex(
+					(account: { username: string | undefined }) =>
+						account.username === authstore.user?.name
+				);
+				if (existingAccount != -1) {
+					accounts.splice(existingAccount, 1, newAccEntry);
+				} else {
+					accounts.push(newAccEntry);
+				}
+				localStorage["wispcraft_accounts"] = JSON.stringify(accounts);
+			}
+			const selector = document.createElement("option");
+			selector.value = authstore.user.name;
+			selector.innerText = authstore.user.name;
+			accountSelect.add(selector);
+			accountStatus.innerHTML = "";
+			accountSelect.value = authstore.user.name;
+			addButton.disabled = false;
+			localStorage["wispcraft_last_used_account"] = authstore.user.name;
+		} catch (e) {
+			accountStatus.innerHTML = `An error occured: <code>${new String(e).toString()}</code>`;
+			addButton.disabled = false;
+		}
+	};
 
-    authTab.onclick = () => {
-        const tabs = document.querySelectorAll(".tabs span");
-        const pages = document.querySelectorAll(".settings-ui .content");
+	authTab.onclick = () => {
+		const tabs = document.querySelectorAll(".tabs span");
+		const pages = document.querySelectorAll(".settings-ui .content");
 
-        for (const tab of tabs) {
-            tab.classList.remove("selected");
-        }
+		for (const tab of tabs) {
+			tab.classList.remove("selected");
+		}
 
-        for (const page of pages) {
-            page.classList.remove("shown");
-            page.classList.add("hidden");
-        }
+		for (const page of pages) {
+			page.classList.remove("shown");
+			page.classList.add("hidden");
+		}
 
-        auth.classList.remove("hidden");
-        auth.classList.add("shown");
-        authTab.classList.add("selected");
-    };
+		auth.classList.remove("hidden");
+		auth.classList.add("shown");
+		authTab.classList.add("selected");
+	};
 }
 
 export function showUI() {
-    const settingsUi = document.querySelector(".settings-ui");
-    if (!settingsUi) {
-        createUI();
-        return showUI();
-    }
-    settingsUi.classList.remove("hidden");
-    document.querySelector(".backdrop-blur")!.classList.remove("hidden");
+	const settingsUi = document.querySelector(".settings-ui");
+	if (!settingsUi) {
+		createUI();
+		return showUI();
+	}
+	settingsUi.classList.remove("hidden");
+	document.querySelector(".backdrop-blur")!.classList.remove("hidden");
 }
