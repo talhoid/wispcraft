@@ -1,7 +1,9 @@
+import { EpoxyHandlers, EpoxyWebSocket, EpoxyWebSocketInput } from "@mercuryworkshop/epoxy-tls";
 import { Connection } from ".";
 import { authstore, wispUrl } from "..";
 import { Buffer } from "../buffer";
 import { showUI } from "../ui";
+import { epoxyWs } from "./epoxy";
 // @ts-ignore typescript sucks
 import wispcraft from "./wispcraft.png";
 
@@ -132,8 +134,69 @@ class SettingsWS extends EventTarget {
 	close() {}
 }
 
+class EpoxyWS extends EventTarget {
+	inner: EpoxyWebSocket | null;
+	readyState: number;
+	binaryType: string = "arraybuffer";
+	queue: Array<EpoxyWebSocketInput>;
+
+	constructor(uri: string, protocols?: string | string[]) {
+		super();
+		this.queue = [];
+		this.inner = null;
+		this.readyState = WebSocket.CONNECTING;
+		this.start(uri, protocols);
+	}
+
+	async start(uri: string, protocols?: string | string[]) {
+		const handlers = new EpoxyHandlers(() => {
+			this.readyState = WebSocket.OPEN;
+			this.dispatchEvent(new Event("open"));
+			if (this.inner != null) {
+				for (let item of this.queue) {
+					this.inner.send(item);
+				}
+				this.queue.length = 0;
+			}
+		}, () => {
+			this.readyState = WebSocket.CLOSING;
+			this.dispatchEvent(new CloseEvent("close"));
+			this.readyState = WebSocket.CLOSED;
+			if (this.inner != null) {
+				this.inner.free();
+			}
+		}, (error: Error) => {
+			console.error(error);
+			this.dispatchEvent(new Event("error"));
+		}, (data: Uint8Array) => {
+			this.dispatchEvent(new MessageEvent("message", { data: data.buffer }));
+		});
+		this.inner = await epoxyWs(handlers, uri, protocols);
+	}
+
+	send(chunk: Uint8Array | ArrayBuffer | string) {
+		chunk = chunk.slice(0);
+		if (chunk instanceof Uint8Array) {
+			chunk = chunk.buffer as ArrayBuffer;
+		}
+		if (this.inner == null || this.readyState == WebSocket.CONNECTING) {
+			this.queue.push(chunk);
+		} else {
+			this.inner.send(chunk);
+		}
+	}
+
+	close() {
+		if (this.inner != null && this.readyState != WebSocket.CLOSED && this.readyState != WebSocket.CLOSING) {
+			try {
+				this.inner.close(0, "");
+			} catch (e) {}
+		}
+	}
+}
+
 class AutoWS extends EventTarget {
-	inner: WebSocket | WispWS | null;
+	inner: WebSocket | WispWS | EpoxyWS | null;
 	url: string;
 	queue: Array<Uint8Array | ArrayBuffer | string>;
 
@@ -141,6 +204,7 @@ class AutoWS extends EventTarget {
 		super();
 		this.queue = [];
 		let flag2 = false;
+		let flag3 = false;
 		const url = new URL(uri);
 		this.inner = null;
 		this.url = url.protocol + "//java://" + url.hostname;
@@ -194,10 +258,31 @@ class AutoWS extends EventTarget {
 				this.inner.removeEventListener("open", el3);
 				this.inner.removeEventListener("message", el);
 			}
+			if (!flag3) {
+				flag3 = true;
+				called = false;
+				flag = false;
+				const bt = (this.inner as WebSocket)?.binaryType || "arraybuffer";
+				this.inner?.close();
+				this.inner = null;
+				ti = setTimeout(el2, 2000);
+				try {
+					this.inner = new EpoxyWS(uri, protocols);
+					this.inner.binaryType = bt;
+					this.inner.addEventListener("close", el2);
+					this.inner.addEventListener("error", el2);
+					this.inner.addEventListener("open", el3);
+					this.inner.addEventListener("message", el);
+				} catch (e) {
+					el2();
+				}
+				return;
+			}
 			if (!flag2 && url.protocol.length == 3) {
 				flag2 = true;
 				called = false;
 				flag = false;
+				flag3 = false;
 				const bt = (this.inner as WebSocket)?.binaryType || "arraybuffer";
 				this.inner?.close();
 				this.inner = null;
@@ -243,7 +328,7 @@ class AutoWS extends EventTarget {
 	}
 
 	send(chunk: Uint8Array | ArrayBuffer | string) {
-		if (this.inner == null || this.inner.readyState != WebSocket.OPEN) {
+		if (this.inner == null || this.inner.readyState == WebSocket.CONNECTING) {
 			this.queue.push(chunk);
 		} else {
 			return this.inner.send(chunk);
