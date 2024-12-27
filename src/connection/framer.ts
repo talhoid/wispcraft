@@ -61,9 +61,6 @@ export function bufferTransformer(): TransformStream<Uint8Array, Buffer> {
 	return new TransformStream({
 		transform(chunk, controller) {
 			controller.enqueue(new Buffer(chunk));
-			console.log(
-				"Got a packet of size " + chunk.length + " (bufferTransformer)"
-			);
 		},
 	});
 }
@@ -101,9 +98,6 @@ export function lengthTransformer(): TransformStream<Buffer> {
 				controller.enqueue(pkt);
 				currentSize = -1;
 			}
-			console.log(
-				"Took " + (performance.now() - start) + " to lengthTransform packet"
-			);
 		},
 	});
 }
@@ -133,9 +127,6 @@ export class Decompressor {
 						"Decompressor: server sent compressed packet below threshold"
 					);
 				}
-				console.log(
-					"Took " + (performance.now() - start) + " to decompress packet"
-				);
 			},
 		});
 	}

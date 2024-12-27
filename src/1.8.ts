@@ -352,7 +352,6 @@ export class EaglerProxy {
 							}
 
 							let serverid = packet.readString();
-							console.log("Server ID: " + serverid);
 							let publicKey = packet.readVariableData();
 							let verifyToken = packet.readVariableData();
 
@@ -372,7 +371,6 @@ export class EaglerProxy {
 								modulus,
 								exponent
 							);
-							console.log("joining with: ", this.authStore);
 							await joinServer(
 								this.authStore.yggToken,
 								digest,

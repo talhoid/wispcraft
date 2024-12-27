@@ -283,12 +283,14 @@ const NativeWebSocket = WebSocket;
 export function makeFakeWebSocket(): typeof WebSocket {
 	return new Proxy(WebSocket, {
 		construct(_target, [uri, protos]) {
+			if (uri == wispUrl) {
+				return new NativeWebSocket(uri, protos);
+			}
+			
 			let url = new URL(uri);
 			let isCustomProtocol = url.port == "" && url.pathname.startsWith("//");
 
-			if (url.href == wispUrl) {
-				return new NativeWebSocket(uri, protos);
-			} else if (isCustomProtocol && url.hostname == "java") {
+			if (isCustomProtocol && url.hostname == "java") {
 				const ws = new WispWS(uri);
 				ws.start();
 				return ws;

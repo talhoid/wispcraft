@@ -24,10 +24,19 @@ export let authstore: AuthStore = {
 
 const nativeFetch = fetch;
 
-wispUrl =
-	new URL(window.location.href).searchParams.get("wisp") ||
-	localStorage["wispcraft_wispurl"] ||
-	"wss://wisp.run/";
+export function setWispUrl(wisp: string) {
+	const wispUrlUrl = new URL(wisp);
+	if (!wispUrlUrl.pathname.endsWith("/")) {
+		wispUrlUrl.pathname += "/";
+	}
+	wispUrl = wispUrlUrl.href;
+}
+
+setWispUrl(wispUrl = 
+		new URL(window.location.href).searchParams.get("wisp") ||
+		localStorage["wispcraft_wispurl"] ||
+		"wss://wisp.run/"
+	);
 
 if (localStorage["wispcraft_accounts"]) {
 	const accounts = JSON.parse(

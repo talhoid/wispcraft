@@ -3,6 +3,7 @@ import initEpoxy, {
 	EpoxyClient,
 	EpoxyClientOptions,
 } from "@mercuryworkshop/epoxy-tls/minimal-epoxy-bundled";
+import { setWispUrl } from "..";
 
 let connectedwisp = "";
 
@@ -48,6 +49,7 @@ export async function connect_tcp(socket: string): Promise<EpoxyIoStream> {
 
 export function set_wisp_server(wisp_url: string) {
 	initpromise = new Promise((r) => (resolver = r));
+	setWispUrl(wisp_url);
 	initWisp(wisp_url);
 }
 
