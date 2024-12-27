@@ -268,6 +268,22 @@ export function createUI() {
             .settings-ui #account_status a:active {
                 color: #cdd6f4;
             }
+
+            .link {
+                color: #3C82F6;
+            }
+            
+            .list{
+              padding-left: 2em;
+            }
+            
+            .value {
+              width: 3.5em;
+              padding: 4px 2px;
+              margin: -4px 0;
+              text-align:center;
+            }
+
         </style>
 
         <div class="backdrop-blur hidden" id="backdrop_blur"></div>
@@ -307,7 +323,13 @@ export function createUI() {
 
             <div class="content hidden" id="about">
                 <div class="setting">
-                    <p>Something something <input class="input" style="width:3.5em;padding:4px 2px;margin:-4px 0;text-align:center;" type="text" readonly value="java://" /> for direct connect Something something</p>
+                  <p>Wispcraft uses the <a class="link" href="https://github.com/MercuryWorkshop/wisp-protocol">Wisp protocol</a> to allow an Eaglercraft client to connect to traditional Java Minecraft servers. To connect to Java Minecraft server begin the server address with <input class="input value" type="text" readonly value="java://">  if you would like to connect to an Eaglercraft server continue starting the address with <input class="input value" type="text" readonly value="wss://">.</p>
+                  <br>
+                  <p>Warnings:</p>
+                  <ul class="list">
+                    <li>Connecting to a cracked Minecraft server over Wisp gives the Wisp server access to chat logs, map data, etc..</li>
+                    <li>Using your Minecraft account on Wispcraft may lead to a server taking action on your account.  </li>
+                  </ul>
                 </div>
             </div>
         </div>`;
