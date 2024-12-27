@@ -189,23 +189,18 @@
 					const reader = new FileReader();
 					reader.onload = function (e) {
 						let content = e.target.result;
-						const index = content.toLowerCase().indexOf("<head>");
+						let index = content.toLowerCase().indexOf("<head>");
 						if (index == -1) {
 							alert("Invalid client file!");
 							fileElem.value = "";
 							fileElem.removeAttribute("disabled");
 							return;
 						}
+						index += 6;
 
 						let inject = `
-							<script>
-								let bundle = "${getWispcraftBundle()}";
-								let blob = new Blob([Uint8Array.from(atob(bundle).split("").map((c) => c.charCodeAt(0)))], {type: "application/javascript"});
-								let url = URL.createObjectURL(blob);
-								let script = document.createElement("script");
-								script.src = url;
-								document.head.appendChild(script);
-								script.onload = () => wispcraft.initMain(url);
+							<script type="text/javascript">
+								${atob(getWispcraftBundle())}
 							<${"/"}script>
 						`
 						content =

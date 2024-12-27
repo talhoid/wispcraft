@@ -1,5 +1,5 @@
 import { EaglerProxy } from "../1.8";
-import { connect_tcp, initWisp } from "./epoxy";
+import { connect_tcp } from "./epoxy";
 import { Buffer } from "../buffer";
 import {
 	bufferTransformer,
@@ -41,11 +41,11 @@ function link<T>(): [ReadableStream<T>, WritableStream<T>] {
 
 export class Connection {
 	// used by fake websocket
-	eaglerIn: WritableStream<Buffer>;
-	eaglerOut: ReadableStream<Buffer | string>;
+	eaglerIn: BytesWriter;
+	eaglerOut: BytesReader;
 
 	// linked to eaglerIn, has packets the client sends
-	processIn: ReadableStream<Buffer>;
+	processIn: BytesReader;
 	// linked to eaglerOut, has packets the server sends
 	processOut: BytesWriter;
 
@@ -56,17 +56,14 @@ export class Connection {
 
 	constructor(
 		uri: string,
-		wispurl: string,
 		private authStore: AuthStore,
 	) {
-		initWisp(wispurl);
-
 		const [processIn, eaglerIn] = link<Buffer>();
-		this.processIn = processIn;
-		this.eaglerIn = eaglerIn;
+		this.processIn = processIn.getReader();
+		this.eaglerIn = eaglerIn.getWriter();
 
 		const [eaglerOut, processOut] = link<Buffer>();
-		this.eaglerOut = eaglerOut;
+		this.eaglerOut = eaglerOut.getReader();
 		this.processOut = processOut.getWriter();
 
 		this.url = new URL(uri.slice(uri.toLowerCase().indexOf("://") + 3));
@@ -122,7 +119,7 @@ export class Connection {
 					.pipeThrough(bufferTransformer())
 					.pipeThrough(impl.decryptor.transform)
 					.pipeThrough(lengthTransformer())
-					.pipeThrough(impl.decompressor.transform),
+					.pipeThrough(impl.decompressor.transform).getReader(),
 				100,
 				() => backlog++,
 			).getReader();

@@ -161,14 +161,13 @@ export class Compressor {
 }
 
 export function eagerlyPoll<T>(
-	stream: ReadableStream<T>,
+	reader: ReadableStreamDefaultReader,
 	buffer: number,
 	cb: () => void
 ): ReadableStream<T> {
 	return new ReadableStream(
 		{
 			async start(controller) {
-				const reader = stream.getReader();
 				while (true) {
 					const { done, value } = await reader.read();
 					if (done || !value) break;

@@ -1,40 +1,38 @@
-import { authstore, wispUrl, type AuthStore } from "..";
+import { Connection } from ".";
+import { authstore, wispUrl } from "..";
 import { Buffer } from "../buffer";
 import { showUI } from "../ui";
 // @ts-ignore typescript sucks
 import wispcraft from "./wispcraft.png";
 
 class WispWS extends EventTarget {
+	inner: Connection;
 	url: string;
-	worker: Worker;
-
-	eaglerIn?: WritableStreamDefaultWriter<Buffer>;
-	eaglerOut?: ReadableStreamDefaultReader<Buffer | string>;
 	readyState: number;
 
-	constructor(uri: string, workeruri: string) {
+	constructor(uri: string) {
 		super();
 
 		this.url = uri;
-		this.worker = new Worker(workeruri);
-
+		this.inner = new Connection(uri, authstore);
 		this.readyState = WebSocket.CONNECTING;
-		this.worker.onmessage = async ({ data }) => {
-			this.eaglerIn = data.eaglerIn.getWriter();
-			this.eaglerOut = data.eaglerOut.getReader();
+	}
 
+	start() {
+		this.inner.forward(() => {
 			this.readyState = WebSocket.OPEN;
 			this.dispatchEvent(new Event("open"));
-
+		});
+		(async () => {
 			try {
 				while (true) {
-					const { done, value } = await this.eaglerOut!.read();
+					const { done, value } = await this.inner.eaglerOut.read();
 					if (done || !value) break;
 
 					this.dispatchEvent(
 						new MessageEvent("message", {
 							data: typeof value === "string" ? value : value.inner,
-						}),
+						})
 					);
 				}
 				this.readyState = WebSocket.CLOSING;
@@ -44,22 +42,14 @@ class WispWS extends EventTarget {
 				console.error(err);
 				this.dispatchEvent(new Event("error"));
 			}
-		};
-	}
-
-	start() {
-		this.worker.postMessage({
-			uri: this.url,
-			wisp: wispUrl,
-			authstore,
-		});
+		})();
 	}
 
 	send(chunk: Uint8Array | ArrayBuffer | string) {
 		let buf: Buffer;
 		if (typeof chunk == "string") {
 			if (chunk.toLowerCase() == "accept: motd") {
-				this.worker.postMessage({ ping: true });
+				this.inner.ping();
 			}
 			return;
 		} else if (chunk instanceof ArrayBuffer) {
@@ -67,21 +57,17 @@ class WispWS extends EventTarget {
 		} else {
 			buf = new Buffer(chunk, true);
 		}
-		if (!this.eaglerIn) throw new Error("not connected");
-		this.eaglerIn.write(buf);
+		this.inner.eaglerIn.write(buf);
 	}
 
 	close() {
-		if (
-			this.readyState == WebSocket.CLOSING ||
-			this.readyState == WebSocket.CLOSED
-		) {
+		if (this.readyState == WebSocket.CLOSING || this.readyState == WebSocket.CLOSED) {
 			return;
 		}
 		this.readyState = WebSocket.CLOSING;
 		try {
-			this.worker.postMessage({ close: true });
-		} catch (err) { }
+			this.inner.eaglerIn.abort();
+		} catch (err) {}
 		this.readyState = WebSocket.CLOSED;
 	}
 }
@@ -145,7 +131,7 @@ class AutoWS extends EventTarget {
 	inner: WebSocket | WispWS | null;
 	url: string;
 
-	constructor(uri: string, workeruri: string, protocols?: string | string[]) {
+	constructor(uri: string, protocols?: string | string[]) {
 		super();
 		const url = new URL(uri);
 		this.inner = null;
@@ -195,7 +181,7 @@ class AutoWS extends EventTarget {
 				this.inner.removeEventListener("open", el3);
 				this.inner.removeEventListener("message", el);
 			}
-			this.inner = new WispWS(this.url, workeruri);
+			this.inner = new WispWS(this.url);
 			this.inner.addEventListener("close", el);
 			this.inner.addEventListener("error", el);
 			this.inner.addEventListener("open", el);
@@ -255,7 +241,7 @@ class AutoWS extends EventTarget {
 }
 
 const NativeWebSocket = WebSocket;
-export function makeFakeWebSocket(workeruri: string): typeof WebSocket {
+export function makeFakeWebSocket(): typeof WebSocket {
 	return new Proxy(WebSocket, {
 		construct(_target, [uri, protos]) {
 			let url = new URL(uri);
@@ -264,13 +250,13 @@ export function makeFakeWebSocket(workeruri: string): typeof WebSocket {
 			if (url.href == wispUrl) {
 				return new NativeWebSocket(uri, protos);
 			} else if (isCustomProtocol && url.hostname == "java") {
-				const ws = new WispWS(uri, workeruri);
+				const ws = new WispWS(uri);
 				ws.start();
 				return ws;
 			} else if (isCustomProtocol && url.hostname == "settings") {
 				return new SettingsWS();
 			} else {
-				return new AutoWS(uri, workeruri, protos);
+				return new AutoWS(uri, protos);
 			}
 		},
 	});
