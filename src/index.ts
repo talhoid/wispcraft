@@ -37,11 +37,16 @@ export function setWispUrl(wisp: string) {
 	wispUrl = wispUrlUrl.href;
 }
 
-setWispUrl(wispUrl = 
+wispUrl = 
 		new URL(window.location.href).searchParams.get("wisp") ||
 		localStorage["wispcraft_wispurl"] ||
 		"wss://wisp.run/"
-	);
+
+try {
+	setWispUrl(wispUrl);
+} catch (e) {
+	console.error(e);
+}
 
 if (localStorage["wispcraft_accounts"]) {
 	const accounts = JSON.parse(

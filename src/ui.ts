@@ -33,8 +33,8 @@ export function createUI() {
             }
 
             .settings-ui {
-                width: 60vw;
-                height: 60vh;
+                width: 80vw;
+                height: 80vh;
                 position: fixed;
                 z-index: 20;
 
@@ -121,10 +121,6 @@ export function createUI() {
             }
 
             .hidden {
-                display: none;
-            }
-
-            .hidden2 {
                 display: none;
             }
 
@@ -243,6 +239,11 @@ export function createUI() {
                 text-align: center;
             }
 
+            .settings-ui #save_status {
+                font-size: 14px;
+                color: #cdd6f4;
+            }
+
             .settings-ui #account_status svg {
                 background-color: #cdd6f4;
                 color: #020817;
@@ -285,20 +286,14 @@ export function createUI() {
 
             <div class="tabs">
                 <span class="selected" id="settings_tab">Settings</span>
-                <span id="auth_tab">Auth</span>
+                <span id="about_tab">About</span>
             </div>
 
             <div class="content shown" id="settings">
                 <div class="setting">
                     <p>Wisp Server</p>
                     <input class="input" id="wisp_url" placeholder="wss://anura.pro/" />
-                </div>
-                <p id="save_status"></p>
-                <button class="button" id="save_button">Save</button>
-            </div>
-
-            <div class="content hidden" id="auth">
-                <div class="setting">
+                    <p id="save_status"><br /></p>
                     <p>Microsoft Accounts</p>
                     <select name="accounts" id="account_select" class="select">
                         <option selected disabled>Choose an account</option>
@@ -309,17 +304,23 @@ export function createUI() {
                     <button class="button" id="removebutton" disabled>Remove account</button>
                 </div>
             </div>
+
+            <div class="content hidden" id="about">
+                <div class="setting">
+                    <p>Something something <input class="input" style="width:3.5em;padding:4px 2px;margin:-4px 0;text-align:center;" type="text" readonly value="java://" /> for direct connect Something something</p>
+                </div>
+            </div>
         </div>`;
 
 	document.body.insertAdjacentHTML("beforeend", ui);
 
 	const settings = document.querySelector("#settings") as HTMLDivElement;
-	const auth = document.querySelector("#auth") as HTMLDivElement;
+    const about = document.querySelector("#about") as HTMLDivElement;
 
 	const settingsTab = document.querySelector(
 		"#settings_tab",
 	) as HTMLSpanElement;
-	const authTab = document.querySelector("#auth_tab") as HTMLSpanElement;
+    const aboutTab = document.querySelector("#about_tab") as HTMLSpanElement;
 
 	const wispInput = document.querySelector("#wisp_url") as HTMLInputElement;
 
@@ -334,12 +335,9 @@ export function createUI() {
 			nativeAddEventListener("keydown", listener),
 		),
 	);
-	const saveButton = document.querySelector(
-		"#save_button",
-	) as HTMLButtonElement;
 	const saveStatus = document.querySelector(
 		"#save_status",
-	) as HTMLButtonElement;
+	) as HTMLParagraphElement;
 
 	const accountSelect = document.querySelector(
 		"#account_select",
@@ -372,7 +370,13 @@ export function createUI() {
 		accountSelect.value = localStorage["wispcraft_last_used_account"];
 	}
 
-	saveButton.onclick = async () => {
+    let saveTi = -1;
+
+	wispInput.onchange = async () => {
+        if (saveTi != -1) {
+            clearTimeout(saveTi);
+            saveTi = -1;
+        }
 		try {
 			const value = wispInput.value;
 			localStorage.setItem("wispcraft_wispurl", value);
@@ -382,6 +386,27 @@ export function createUI() {
 		} catch (e) {
 			saveStatus.innerText = `An error occured: ${new String(e).toString()}`;
 		}
+        saveTi = setTimeout(() => {
+            saveStatus.innerHTML = "<br />";
+        }, 5000);
+	};
+
+	aboutTab.onclick = () => {
+		const tabs = document.querySelectorAll(".tabs span");
+		const pages = document.querySelectorAll(".settings-ui .content");
+
+		for (const tab of tabs) {
+			tab.classList.remove("selected");
+		}
+
+		for (const page of pages) {
+			page.classList.remove("shown");
+			page.classList.add("hidden");
+		}
+
+		about.classList.remove("hidden");
+		about.classList.add("shown");
+		aboutTab.classList.add("selected");
 	};
 
 	settingsTab.onclick = () => {
@@ -531,23 +556,10 @@ export function createUI() {
 		}
 	};
 
-	authTab.onclick = () => {
-		const tabs = document.querySelectorAll(".tabs span");
-		const pages = document.querySelectorAll(".settings-ui .content");
-
-		for (const tab of tabs) {
-			tab.classList.remove("selected");
-		}
-
-		for (const page of pages) {
-			page.classList.remove("shown");
-			page.classList.add("hidden");
-		}
-
-		auth.classList.remove("hidden");
-		auth.classList.add("shown");
-		authTab.classList.add("selected");
-	};
+    if (!localStorage["seen_about"]) {
+        aboutTab.click();
+        localStorage["seen_about"] = 1;
+    }
 }
 
 export function showUI() {
