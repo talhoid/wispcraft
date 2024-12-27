@@ -194,20 +194,31 @@ class AutoWS extends EventTarget {
 			this.inner.start();
 		};
 		ti = setTimeout(el2, 3500);
+		let ws: WebSocket;
 		try {
-			const ws = new NativeWebSocket(uri, protocols);
-			if (this.inner != null) {
-				ws.close();
+			ws = new NativeWebSocket(uri, protocols);
+		} catch (e) {
+			if (url.protocol.length != 3) {
+				el2();
 				return;
 			}
-			this.inner = ws;
-			this.inner.addEventListener("close", el2);
-			this.inner.addEventListener("error", el2);
-			this.inner.addEventListener("open", el3);
-			this.inner.addEventListener("message", el);
-		} catch (e) {
-			el2();
+			try {
+				const i = uri.indexOf(":");
+				ws = new NativeWebSocket(uri.slice(0, i) + "s" + uri.slice(i), protocols);
+			} catch (e2) {
+				el2();
+				return;
+			}
 		}
+		if (this.inner != null) {
+			ws.close();
+			return;
+		}
+		this.inner = ws;
+		this.inner.addEventListener("close", el2);
+		this.inner.addEventListener("error", el2);
+		this.inner.addEventListener("open", el3);
+		this.inner.addEventListener("message", el);
 	}
 
 	send(chunk: Uint8Array | ArrayBuffer | string) {
