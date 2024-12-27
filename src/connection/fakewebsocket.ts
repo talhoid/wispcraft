@@ -1,6 +1,6 @@
 import { EpoxyHandlers, EpoxyWebSocket, EpoxyWebSocketInput } from "@mercuryworkshop/epoxy-tls";
 import { Connection } from ".";
-import { authstore, wispUrl } from "..";
+import { authstore, COMMITHASH, VERSION, wispUrl } from "..";
 import { Buffer } from "../buffer";
 import { showUI } from "../ui";
 import { epoxyWs } from "./epoxy";
@@ -87,15 +87,13 @@ class SettingsWS extends EventTarget {
 	}
 	send(chunk: Uint8Array | ArrayBuffer | string) {
 		if (typeof chunk === "string" && chunk.toLowerCase() === "accept: motd") {
-			//@ts-expect-error this gets filled in by rollup
-			const ver = self.VERSION;
 			const accs = localStorage["wispcraft_accounts"] ? JSON.parse(localStorage["wispcraft_accounts"]).length : 0;
 			this.dispatchEvent(
 				new MessageEvent("message", {
 					data: JSON.stringify({
 						name: "Settings",
 						brand: "mercuryworkshop",
-						vers: "wispcraft/" + ver,
+						vers: "wispcraft/" + VERSION,
 						cracked: true,
 						time: Date.now(),
 						uuid: "00000000-0000-0000-0000-000000000000",
@@ -106,8 +104,7 @@ class SettingsWS extends EventTarget {
 							online: accs,
 							max: 0,
 							motd: ["Sign in with Microsoft", "Configure Proxy URL"],
-							//@ts-expect-error this gets filled in by rollup
-							players: [`Version: ${ver}`, `Build: ${self.COMMITHASH}`],
+							players: [`Version: ${VERSION}`, `Build: ${COMMITHASH}`],
 						},
 					}),
 				})

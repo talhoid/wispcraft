@@ -13,7 +13,7 @@ import {
 import { handleSkinCape } from "./skins";
 import "./auth";
 import { joinServer } from "./auth";
-import type { AuthStore } from ".";
+import { VERSION, type AuthStore } from ".";
 // import { authstore } from "./index";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
@@ -266,7 +266,7 @@ export class EaglerProxy {
 						let response: any = {
 							name: "Java Server",
 							brand: "mercuryworkshop",
-							vers: "wispcraft/1.0",
+							vers: "wispcraft/" + VERSION,
 							cracked: true,
 							time: Date.now(),
 							uuid: bytesToUuid(offlineUUID("wispcraft")),
@@ -276,7 +276,7 @@ export class EaglerProxy {
 								icon: false,
 								online: body.players.online,
 								max: body.players.max,
-								players: [],
+								players: [ body.version.name, "\u00A77\u00A7o(Wispcraft)" ],
 							},
 						};
 

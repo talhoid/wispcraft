@@ -2,6 +2,11 @@ import { getProfile, minecraftAuth, UserInfo } from "./auth";
 import { epoxyFetch, initWisp } from "./connection/epoxy";
 import { makeFakeWebSocket } from "./connection/fakewebsocket";
 
+//@ts-expect-error this gets filled in by rollup
+export const VERSION = self.VERSION;
+//@ts-expect-error this too
+export const COMMITHASH = self.COMMITHASH;
+
 export let wispUrl: string;
 
 export type AuthStore = {
