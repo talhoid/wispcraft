@@ -207,6 +207,11 @@ export function createUI() {
                 background-position: right 12px center;
             }
 
+            .settings-ui .select option {
+                background-color: #020817;
+                color: #cdd6f4;
+            }
+
             .settings-ui .select:focus {
                 outline: none;
             }
