@@ -258,8 +258,8 @@ class AutoWS extends EventTarget {
 				this.inner.removeEventListener("open", el3);
 				this.inner.removeEventListener("message", el);
 			}
-			if (!flag3) {
-				flag3 = true;
+			if (!flag2 && url.protocol.length == 3) {
+				flag2 = true;
 				called = false;
 				flag = false;
 				const bt = (this.inner as WebSocket)?.binaryType || "arraybuffer";
@@ -267,7 +267,7 @@ class AutoWS extends EventTarget {
 				this.inner = null;
 				ti = setTimeout(el2, 2000);
 				try {
-					this.inner = new EpoxyWS(uri, protocols);
+					this.inner = new NativeWebSocket("ws" + uri.slice(1), protocols);
 					this.inner.binaryType = bt;
 					this.inner.addEventListener("close", el2);
 					this.inner.addEventListener("error", el2);
@@ -278,17 +278,17 @@ class AutoWS extends EventTarget {
 				}
 				return;
 			}
-			if (!flag2 && url.protocol.length == 3) {
-				flag2 = true;
+			if (!flag3) {
+				flag3 = true;
 				called = false;
 				flag = false;
-				flag3 = false;
+				flag2 = false;
 				const bt = (this.inner as WebSocket)?.binaryType || "arraybuffer";
 				this.inner?.close();
 				this.inner = null;
 				ti = setTimeout(el2, 2000);
 				try {
-					this.inner = new NativeWebSocket("ws" + uri.slice(1), protocols);
+					this.inner = new EpoxyWS(uri, protocols);
 					this.inner.binaryType = bt;
 					this.inner.addEventListener("close", el2);
 					this.inner.addEventListener("error", el2);
