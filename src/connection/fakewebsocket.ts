@@ -1,4 +1,8 @@
-import { EpoxyHandlers, EpoxyWebSocket, EpoxyWebSocketInput } from "@mercuryworkshop/epoxy-tls";
+import {
+	EpoxyHandlers,
+	EpoxyWebSocket,
+	EpoxyWebSocketInput,
+} from "@mercuryworkshop/epoxy-tls";
 import { Connection } from ".";
 import { authstore, COMMITHASH, VERSION, wispUrl } from "..";
 import { Buffer } from "../buffer";
@@ -59,6 +63,23 @@ class WispWS extends EventTarget {
 		} else {
 			buf = new Buffer(chunk, true);
 		}
+
+		if (
+			this.url.includes("hypixel.net") &&
+			!localStorage["disclaimer_accepted"]
+		) {
+			if (
+				!window.confirm(
+					"WARNING: Wispcraft in default configuration will route your traffic through a VPN. This is not officially supported by hypixel, and in the possible event your account gets locked we do not accept responsibility. Continue?"
+				)
+			) {
+				this.dispatchEvent(new Event("error"));
+				this.dispatchEvent(new CloseEvent("close"));
+				return;
+			}
+			localStorage["disclaimer_accepted"] = 1;
+		}
+
 		this.inner.eaglerIn.write(buf);
 	}
 
@@ -87,7 +108,9 @@ class SettingsWS extends EventTarget {
 	}
 	send(chunk: Uint8Array | ArrayBuffer | string) {
 		if (typeof chunk === "string" && chunk.toLowerCase() === "accept: motd") {
-			const accs = localStorage["wispcraft_accounts"] ? JSON.parse(localStorage["wispcraft_accounts"]).length : 0;
+			const accs = localStorage["wispcraft_accounts"]
+				? JSON.parse(localStorage["wispcraft_accounts"]).length
+				: 0;
 			this.dispatchEvent(
 				new MessageEvent("message", {
 					data: JSON.stringify({
@@ -148,28 +171,33 @@ class EpoxyWS extends EventTarget {
 	}
 
 	async start(uri: string, protocols?: string | string[]) {
-		const handlers = new EpoxyHandlers(() => {
-			this.readyState = WebSocket.OPEN;
-			this.dispatchEvent(new Event("open"));
-			if (this.inner != null) {
-				for (let item of this.queue) {
-					this.inner.send(item);
+		const handlers = new EpoxyHandlers(
+			() => {
+				this.readyState = WebSocket.OPEN;
+				this.dispatchEvent(new Event("open"));
+				if (this.inner != null) {
+					for (let item of this.queue) {
+						this.inner.send(item);
+					}
+					this.queue.length = 0;
 				}
-				this.queue.length = 0;
+			},
+			() => {
+				this.readyState = WebSocket.CLOSING;
+				this.dispatchEvent(new CloseEvent("close"));
+				this.readyState = WebSocket.CLOSED;
+				if (this.inner != null) {
+					this.inner.free();
+				}
+			},
+			(error: Error) => {
+				console.error(error);
+				this.dispatchEvent(new Event("error"));
+			},
+			(data: Uint8Array) => {
+				this.dispatchEvent(new MessageEvent("message", { data: data.buffer }));
 			}
-		}, () => {
-			this.readyState = WebSocket.CLOSING;
-			this.dispatchEvent(new CloseEvent("close"));
-			this.readyState = WebSocket.CLOSED;
-			if (this.inner != null) {
-				this.inner.free();
-			}
-		}, (error: Error) => {
-			console.error(error);
-			this.dispatchEvent(new Event("error"));
-		}, (data: Uint8Array) => {
-			this.dispatchEvent(new MessageEvent("message", { data: data.buffer }));
-		});
+		);
 		this.inner = await epoxyWs(handlers, uri, protocols);
 	}
 
@@ -186,7 +214,11 @@ class EpoxyWS extends EventTarget {
 	}
 
 	close() {
-		if (this.inner != null && this.readyState != WebSocket.CLOSED && this.readyState != WebSocket.CLOSING) {
+		if (
+			this.inner != null &&
+			this.readyState != WebSocket.CLOSED &&
+			this.readyState != WebSocket.CLOSING
+		) {
 			try {
 				this.inner.close(0, "");
 			} catch (e) {}
@@ -370,7 +402,7 @@ export function makeFakeWebSocket(): typeof WebSocket {
 			if (uri == wispUrl) {
 				return new NativeWebSocket(uri, protos);
 			}
-			
+
 			let url = new URL(uri);
 			let isCustomProtocol = url.port == "" && url.pathname.startsWith("//");
 
