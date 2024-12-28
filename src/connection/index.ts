@@ -50,6 +50,7 @@ export class Connection {
 	processOut: BytesWriter;
 
 	url: URL;
+	wispurl: string
 
 	impl?: EaglerProxy;
 	rawEpoxy?: BytesWriter;
@@ -59,6 +60,7 @@ export class Connection {
 		wispurl: string,
 		private authStore: AuthStore,
 	) {
+		this.wispurl = wispurl;
 		initWisp(wispurl);
 
 		const [processIn, eaglerIn] = link<Buffer>();
@@ -97,12 +99,12 @@ export class Connection {
 		// 	connectUrl ? connectUrl.host : this.url.host,
 		// );
 
-		const conn = await (new globalThis["WebSocketStream"]("wss://anura.pro/" + (connectUrl ? connectUrl.host : this.url.host))).opened;
+		const conn = await (new globalThis["WebSocketStream"](this.wispurl + (connectUrl ? connectUrl.host : this.url.host))).opened;
 		connectcallback();
 		const writer = bufferWriter(conn.writable.getWriter());
 		this.rawEpoxy = writer.getWriter();
 		conn.read = conn.readable;
-		
+
 		console.log(conn.read)
 		const impl = new EaglerProxy(
 			this.processOut,
