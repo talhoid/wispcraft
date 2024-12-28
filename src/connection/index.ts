@@ -93,13 +93,17 @@ export class Connection {
 				connectUrl = new URL(`java://${hostname}:${port}`);
 			}
 		} catch {}
-		const conn = await connect_tcp(
-			connectUrl ? connectUrl.host : this.url.host,
-		);
-		connectcallback();
-		const writer = bufferWriter(conn.write.getWriter());
-		this.rawEpoxy = writer.getWriter();
+		// const conn = await connect_tcp(
+		// 	connectUrl ? connectUrl.host : this.url.host,
+		// );
 
+		const conn = await (new globalThis["WebSocketStream"]("wss://anura.pro/" + (connectUrl ? connectUrl.host : this.url.host))).opened;
+		connectcallback();
+		const writer = bufferWriter(conn.writable.getWriter());
+		this.rawEpoxy = writer.getWriter();
+		conn.read = conn.readable;
+		
+		console.log(conn.read)
 		const impl = new EaglerProxy(
 			this.processOut,
 			writeTransform(this.rawEpoxy, async (p: Buffer) => {
