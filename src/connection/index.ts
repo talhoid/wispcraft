@@ -1,5 +1,6 @@
 import { EaglerProxy } from "../1.8";
 import { connect_tcp } from "./epoxy";
+import { epoxyFetch } from "./epoxy";
 import { Buffer } from "../buffer";
 import {
 	bufferTransformer,
@@ -74,7 +75,7 @@ export class Connection {
 	async forward(connectcallback: () => void) {
 		let connectUrl: URL | undefined;
 		try {
-			const dns = await fetch(
+			const dns = await epoxyFetch(
 				`https://cloudflare-dns.com/dns-query?name=_minecraft._tcp.${this.url.hostname}&type=SRV`,
 				{
 					headers: {
