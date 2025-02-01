@@ -27,6 +27,7 @@ export function initMain(workeruri: string) {
 	const nativeFetch = fetch;
 
 	wispUrl =
+		(window as any).anura && (window as any).anura.wsproxyURL ||
 		new URL(window.location.href).searchParams.get("wisp") ||
 		localStorage["wispcraft_wispurl"] ||
 		"wss://wisp.run/";
@@ -121,4 +122,15 @@ function initWorker() {
 
 if ("DedicatedWorkerGlobalScope" in self) {
 	initWorker();
+}
+
+if (window["anura"]) {
+	document.addEventListener("click", function() {
+		setTimeout(function() {
+			(window.frameElement as HTMLIFrameElement)?.focus();
+			window.focus();
+		}, 5)
+
+	});
+	(window.frameElement as HTMLIFrameElement)?.focus();
 }

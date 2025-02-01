@@ -1,0 +1,12 @@
+{
+	"name": "Minecraft",
+	"type": "auto",
+	"package": "games.Minecraft.1-8-8",
+	"index": "index.html",
+	"icon": "icon.png",
+	"wininfo": {
+		"title": "Minecraft",
+		"width": "700px",
+		"height": "500px"
+	}
+}
