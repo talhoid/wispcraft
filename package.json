@@ -6,6 +6,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "rollup -c",
+		"package-anura": "rm -f dist/minecraft.app.zip && npm run build && cp anura_template/* dist/ && cd dist && zip -r minecraft.app.zip *",
 		"build:injector": "bash build_injector.sh",
 		"watch": "rollup -cw",
 		"prepack": "npm run build && npm run build:injector",
