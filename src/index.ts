@@ -37,11 +37,11 @@ export function setWispUrl(wisp: string) {
 	wispUrl = wispUrlUrl.href;
 }
 
-wispUrl = 
-		(window as any).anura && (window as any).anura.wsproxyURL ||
-		new URL(window.location.href).searchParams.get("wisp") ||
-		localStorage["wispcraft_wispurl"] ||
-		"wss://wisp.run/"
+wispUrl =
+	((window as any).anura && (window as any).anura.wsproxyURL) ||
+	new URL(window.location.href).searchParams.get("wisp") ||
+	localStorage["wispcraft_wispurl"] ||
+	"wss://wisp.run/";
 
 try {
 	setWispUrl(wispUrl);
@@ -108,12 +108,11 @@ Object.defineProperty(window, "eaglercraftXOpts", {
 initWisp(wispUrl);
 
 if (window["anura"]) {
-	document.addEventListener("click", function() {
-		setTimeout(function() {
+	document.addEventListener("click", function () {
+		setTimeout(function () {
 			(window.frameElement as HTMLIFrameElement)?.focus();
 			window.focus();
-		}, 5)
-
+		}, 5);
 	});
 	(window.frameElement as HTMLIFrameElement)?.focus();
 }

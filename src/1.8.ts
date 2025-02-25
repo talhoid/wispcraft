@@ -276,7 +276,7 @@ export class EaglerProxy {
 								icon: false,
 								online: body.players.online,
 								max: body.players.max,
-								players: [ body.version.name, "\u00A77\u00A7o(Wispcraft)" ],
+								players: [body.version.name, "\u00A77\u00A7o(Wispcraft)"],
 							},
 						};
 

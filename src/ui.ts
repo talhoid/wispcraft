@@ -7,7 +7,7 @@ let keydownListeners: Array<EventListenerOrEventListenerObject> = [];
 const nativeAddEventListener = window.addEventListener;
 window.addEventListener = (
 	type: string,
-	listener: EventListenerOrEventListenerObject,
+	listener: EventListenerOrEventListenerObject
 ) => {
 	if (type == "keydown") {
 		keydownListeners.push(listener);
@@ -337,39 +337,39 @@ export function createUI() {
 	document.body.insertAdjacentHTML("beforeend", ui);
 
 	const settings = document.querySelector("#settings") as HTMLDivElement;
-    const about = document.querySelector("#about") as HTMLDivElement;
+	const about = document.querySelector("#about") as HTMLDivElement;
 
 	const settingsTab = document.querySelector(
-		"#settings_tab",
+		"#settings_tab"
 	) as HTMLSpanElement;
-    const aboutTab = document.querySelector("#about_tab") as HTMLSpanElement;
+	const aboutTab = document.querySelector("#about_tab") as HTMLSpanElement;
 
 	const wispInput = document.querySelector("#wisp_url") as HTMLInputElement;
 
 	wispInput.addEventListener("focusin", () =>
 		keydownListeners.map((listener) =>
-			window.removeEventListener("keydown", listener),
-		),
+			window.removeEventListener("keydown", listener)
+		)
 	);
 
 	wispInput.addEventListener("focusout", () =>
 		keydownListeners.map((listener) =>
-			nativeAddEventListener("keydown", listener),
-		),
+			nativeAddEventListener("keydown", listener)
+		)
 	);
 	const saveStatus = document.querySelector(
-		"#save_status",
+		"#save_status"
 	) as HTMLParagraphElement;
 
 	const accountSelect = document.querySelector(
-		"#account_select",
+		"#account_select"
 	) as HTMLSelectElement;
 	const addButton = document.querySelector("#addbutton") as HTMLButtonElement;
 	const removeButton = document.querySelector(
-		"#removebutton",
+		"#removebutton"
 	) as HTMLButtonElement;
 	const accountStatus = document.querySelector(
-		"#account_status",
+		"#account_status"
 	) as HTMLParagraphElement;
 
 	if (localStorage["wispcraft_wispurl"]) {
@@ -378,7 +378,7 @@ export function createUI() {
 
 	if (localStorage["wispcraft_accounts"]) {
 		const accounts = JSON.parse(
-			localStorage["wispcraft_accounts"],
+			localStorage["wispcraft_accounts"]
 		) as TokenStore[];
 		for (const account of accounts) {
 			const option = document.createElement("option");
@@ -392,13 +392,13 @@ export function createUI() {
 		accountSelect.value = localStorage["wispcraft_last_used_account"];
 	}
 
-    let saveTi = -1;
+	let saveTi = -1;
 
 	wispInput.onchange = async () => {
-        if (saveTi != -1) {
-            clearTimeout(saveTi);
-            saveTi = -1;
-        }
+		if (saveTi != -1) {
+			clearTimeout(saveTi);
+			saveTi = -1;
+		}
 		try {
 			const value = wispInput.value;
 			localStorage.setItem("wispcraft_wispurl", value);
@@ -408,9 +408,9 @@ export function createUI() {
 		} catch (e) {
 			saveStatus.innerText = `An error occured: ${new String(e).toString()}`;
 		}
-        saveTi = setTimeout(() => {
-            saveStatus.innerHTML = "<br />";
-        }, 5000);
+		saveTi = setTimeout(() => {
+			saveStatus.innerHTML = "<br />";
+		}, 5000);
 	};
 
 	aboutTab.onclick = () => {
@@ -458,10 +458,10 @@ export function createUI() {
 			return;
 		}
 		const accounts = JSON.parse(
-			localStorage["wispcraft_accounts"],
+			localStorage["wispcraft_accounts"]
 		) as TokenStore[];
 		const account = accounts.find(
-			(account) => account.username === accountSelect.value,
+			(account) => account.username === accountSelect.value
 		);
 		if (account) {
 			try {
@@ -499,7 +499,7 @@ export function createUI() {
 		const accounts = JSON.parse(localAuthStore);
 		const existingAccount = accounts.findIndex(
 			(account: { username: string | undefined }) =>
-				account.username === accountSelect.value,
+				account.username === accountSelect.value
 		);
 		if (existingAccount == -1) {
 			return;
@@ -522,7 +522,7 @@ export function createUI() {
 			});
 			accountStatus.innerHTML = `Scan QR Code or click <a id="mslink" href="javascript:void(0)" target="_blank">this link</a> and use code <input id="auth_code" class="input" style="width:8em;text-align:center;" type="text" readonly value="${codeGenerator.code}" /> for logging in.<br /><br />${qrSvg}<br />`;
 			const authCodeBox = document.querySelector(
-				"#auth_code",
+				"#auth_code"
 			) as HTMLInputElement;
 			authCodeBox.onclick = () => {
 				authCodeBox.select();
@@ -555,7 +555,7 @@ export function createUI() {
 				const accounts = JSON.parse(localAuthStore);
 				const existingAccount = accounts.findIndex(
 					(account: { username: string | undefined }) =>
-						account.username === authstore.user?.name,
+						account.username === authstore.user?.name
 				);
 				if (existingAccount != -1) {
 					accounts.splice(existingAccount, 1, newAccEntry);
@@ -578,10 +578,10 @@ export function createUI() {
 		}
 	};
 
-    if (!localStorage["seen_about"]) {
-        aboutTab.click();
-        localStorage["seen_about"] = 1;
-    }
+	if (!localStorage["seen_about"]) {
+		aboutTab.click();
+		localStorage["seen_about"] = 1;
+	}
 }
 
 export function showUI() {

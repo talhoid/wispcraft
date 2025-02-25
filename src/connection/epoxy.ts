@@ -42,11 +42,20 @@ export async function epoxyFetch(url: string, opts?: any): Promise<Response> {
 	return await epoxy!.fetch(url, opts);
 }
 
-export async function epoxyWs(handlers: EpoxyHandlers, uri: string, protocols?: string | string[]): Promise<EpoxyWebSocket> {
+export async function epoxyWs(
+	handlers: EpoxyHandlers,
+	uri: string,
+	protocols?: string | string[]
+): Promise<EpoxyWebSocket> {
 	await initpromise;
 
 	// create() inits epoxy
-	return await epoxy!.connect_websocket(handlers, uri, protocols ? (typeof protocols == 'string' ? [protocols] : protocols) : [], {});
+	return await epoxy!.connect_websocket(
+		handlers,
+		uri,
+		protocols ? (typeof protocols == "string" ? [protocols] : protocols) : [],
+		{}
+	);
 }
 
 export async function connect_tcp(socket: string): Promise<EpoxyIoStream> {
