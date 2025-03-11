@@ -392,7 +392,7 @@ export function createUI() {
 		accountSelect.value = localStorage["wispcraft_last_used_account"];
 	}
 
-	let saveTi = -1;
+	let saveTi: Timer | number = -1;
 
 	wispInput.onchange = async () => {
 		if (saveTi != -1) {
